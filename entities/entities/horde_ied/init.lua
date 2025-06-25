@@ -56,12 +56,13 @@ function ENT:Detonate()
     eff:SetStart(pos)
     eff:SetOrigin(pos)
     util.Effect("Explosion", eff)
+	ParticleEffect("vj_explosion2", self:GetPos(), Angle(0,0,0), nil)
     util.BlastDamage(self, self.Horde_Owner, pos, 100, 200)
 
-    for _, e in pairs(ents.FindInSphere(self:GetPos(), 200)) do
+    for _, e in pairs(ents.FindInSphere(self:GetPos(), 500)) do
         if e:IsNPC() and (not e:GetNWEntity("HordeOwner"):IsValid()) then
             local dmg = DamageInfo()
-            dmg:SetDamage(100)
+            dmg:SetDamage(350)
             dmg:SetDamageType(DMG_BLAST)
             dmg:SetAttacker(self.Horde_Owner)
             dmg:SetInflictor(self)

@@ -10,8 +10,8 @@ AddCSLuaFile()
 
 ENT.Model = "models/items/ar2_grenade.mdl"
 ENT.Ticks = 0
-ENT.CollisionGroup = COLLISION_GROUP_WORLD
-ENT.CollisionGroupType = COLLISION_GROUP_WORLD
+ENT.CollisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT
+ENT.CollisionGroupType = COLLISION_GROUP_PLAYER_MOVEMENT
 ENT.Removing = nil
 ENT.StartPos = nil
 ENT.PlaySoundTimer = 0
@@ -41,7 +41,7 @@ function ENT:CustomOnInitialize()
     self.StartPos = self:GetPos()
     self.SearchTimer = CurTime() + 0.2
 
-    self:SetCollisionGroup(COLLISION_GROUP_WORLD)
+    self:SetCollisionGroup( COLLISION_GROUP_IN_VEHICLE )
 
     self.ExplodeTimer = CurTime() + 10
 
@@ -79,7 +79,7 @@ function ENT:Bounce(prev_target)
     else
         self.Target = nil
         self.AttachedToTarget = nil
-        local targets = ents.FindInSphere(self:GetPos(), 600)
+        local targets = ents.FindInSphere(self:GetPos(), 2000)
         for _, e in pairs(shuffle(targets)) do
             if e ~= prev_target and e:IsNPC() and e:Health() > 0 and (not e:GetNWEntity("HordeOwner"):IsValid()) then
                 self.Target = e
@@ -101,6 +101,7 @@ function ENT:Think()
 
     if SERVER then
         if self.Target and self.Target:IsValid() then--[[and self.Target:Health() > 0]]--
+			util.BlastDamage( self, self.Owner, self.Target:GetPos(), 350, (self:GetSpellBaseDamage(1)/5) )
             local ang = self:GetAngles()
             local desired = ((self.Target:GetPos() + self.Target:OBBCenter()) - self:GetPos()):Angle()
 			ang = LerpAngle(0.8, ang, desired)
@@ -120,14 +121,14 @@ function ENT:Think()
                 dmg_splash:SetDamageType(DMG_SHOCK)
                 dmg_splash:SetDamagePosition(self.Target:GetPos())
                 dmg_splash:SetDamage(self:GetSpellBaseDamage(1))
+				--util.BlastDamage( self, self.Owner, self.Target:GetPos(), 100, self:GetSpellBaseDamage(1) )
                 self.Target:TakeDamageInfo(dmg_splash)
                 self.PrevTarget = self.Target
                 self:Bounce(self.Target)
-
                 ParticleEffect("nether_star_explode", self:GetPos(), Angle(0,0,0), nil)
                 sound.Play("horde/weapons/nether_relic/nether_star_explode.ogg", self:GetPos(), 100, math.random(90, 110))
             else
-                phys:ApplyForceCenter(self:GetForward() * 500)
+                phys:ApplyForceCenter(self:GetForward() * 1000)
             end
         else
             self.Target = nil

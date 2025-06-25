@@ -51,10 +51,33 @@ local sdFootScuff = {"npc/zombie/foot_slide1.wav", "npc/zombie/foot_slide2.wav",
 
 -- Custom
 ENT.Zombie_LastAnimSet = 0 -- 0 = Regular | 1 = On fire
-
-function ENT:CustomOnInitialize()
+ENT.CVar		= "horde_difficulty"
+function ENT:Init()
 	self:AddRelationship("npc_headcrab_poison D_LI 99")
 	self:AddRelationship("npc_headcrab_fast D_LI 99")
+	
+	local pos = self:GetPos()
+	local medictf2 = ents.FindInSphere(pos, 300)
+	local nearest = nil 
+	local nearestDist = 500000
+	timer.Create( "groupup" .. self:EntIndex(), 3, 0, function() if IsValid(self) && IsValid(self:GetEnemy()) then
+		local medictf2 = ents.FindInSphere(pos, 300)
+        for _, ent in pairs(medictf2) do
+			local dist = ent:GetPos():DistToSqr(self:GetPos())
+            if IsValid(ent) && ent:IsNPC() && ent:Disposition(self) != D_HI && ent:GetPos():Distance(self:GetPos()) <= 2500 then
+				local dist = ent:GetPos():DistToSqr(self:GetPos())
+                nearest = ent
+                nearestDist = dist
+			end
+			if nearest then
+				local hello = nearest
+				if CLIENT && self:BeingLookedAtByLocalPlayer() == false then
+				self:SetPos(hello:GetPos() + hello:GetRight()*math.random(-30,30) + hello:GetForward()*math.random(-30,30))
+				end
+			end
+		end
+	end end )
+	
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:CustomOnThink()
@@ -71,6 +94,20 @@ function ENT:CustomOnThink()
 		self.AnimTbl_Run = {ACT_RUN}
 		self.AnimTbl_IdleStand = {ACT_IDLE}
 	end
+end
+
+function ENT:CustomOnThink_AIEnabled()
+if self:IsOnGround() && IsValid(self:GetEnemy()) && self:IsMoving() && self:GetActivity() != ACT_JUMP && cvars.Number(self.CVar, 1) >= 2 && cvars.Number(self.CVar, 1) < 4 then
+	self:SetLocalVelocity(self:GetGroundSpeedVelocity() * 1.25)
+elseif self:IsOnGround() && IsValid(self:GetEnemy()) && self:IsMoving() && self:GetActivity() != ACT_JUMP && cvars.Number(self.CVar, 1) >= 4 then
+	self:SetLocalVelocity(self:GetGroundSpeedVelocity() * 1.5)
+end
+end
+
+function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo,hitgroup)
+if hitgroup == HITGROUP_HEAD then 
+	dmginfo:ScaleDamage(3)
+end
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:MultipleMeleeAttacks()

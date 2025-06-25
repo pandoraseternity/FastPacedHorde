@@ -17,13 +17,11 @@ ENT.VJ_IsDetectableDanger = true
 
 if CLIENT then
 	local Name = "Combine Ball"
-	local LangName = "obj_vj_horde_cball"
+	local LangName = "obj_vj_combineball"
 	language.Add(LangName, Name)
-	--killicon.Add(LangName,"HUD/killicons/default",Color(255,80,0,255))
-    killicon.AddAlias(LangName, "projectile_horde_hyperblast_projectile")
+	killicon.Add(LangName,"HUD/killicons/default",Color(255,80,0,255))
 	language.Add("#"..LangName, Name)
-	--killicon.Add("#"..LangName,"HUD/killicons/default",Color(255,80,0,255))
-    killicon.AddAlias("#"..LangName, "projectile_horde_hyperblast_projectile")
+	killicon.Add("#"..LangName,"HUD/killicons/default",Color(255,80,0,255))
 
 	function ENT:Draw()
 		self:DrawModel()
@@ -106,8 +104,7 @@ local sdHit = {"weapons/physcannon/energy_disintegrate4.wav", "weapons/physcanno
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:OnCollision(data, phys)
 	local owner = self:GetOwner()
-	--[[
-    local hitEnt = data.HitEntity
+	local hitEnt = data.HitEntity
 	if IsValid(owner) then
 		if (VJ_IsProp(hitEnt)) or (owner:IsNPC() && owner:CheckRelationship(hitEnt) == D_HT && (hitEnt != owner) or true) then
 			VJ.CreateSound(self, VJ_PICK(sdHit), 80)
@@ -129,17 +126,16 @@ function ENT:OnCollision(data, phys)
 		dmgInfo:SetDamagePosition(data.HitPos)
 		hitEnt:TakeDamageInfo(dmgInfo, self)
 	end
-    ]]
+
 	local dataF = EffectData()
-	dataF:SetOrigin(data.HitPos)
+	dataF:SetOrigin(self:GetPos())
 	util.Effect("cball_bounce", dataF)
 
 	dataF = EffectData()
-	dataF:SetOrigin(data.HitPos)
-	dataF:SetNormal(data.HitNormal)
+	dataF:SetOrigin(self:GetPos())
 	dataF:SetScale(50)
 	util.Effect("AR2Impact", dataF)
-    --[[
+
     local myPos = self:GetPos()
 	effects.BeamRingPoint(myPos, 0.2, 12, 512, 64, 0, color1, {material="sprites/lgtning.vmt", framerate=2, flags=0, speed=0, delay=0, spread=0})
 	effects.BeamRingPoint(myPos, 0.5, 12, 512, 64, 0, color2, {material="sprites/lgtning.vmt", framerate=2, flags=0, speed=0, delay=0, spread=0})
@@ -152,7 +148,7 @@ function ENT:OnCollision(data, phys)
 	util.ScreenShake(myPos, 20, 150, 1, 500)
 
     local dmg = DamageInfo()
-    dmg:SetAttacker(self.Owner)
+    dmg:SetAttacker(self)
     dmg:SetInflictor(self)
     dmg:SetDamageType(DMG_GENERIC)
     dmg:SetDamage(60)
@@ -160,8 +156,6 @@ function ENT:OnCollision(data, phys)
 	--util.VJ_SphereDamage(self, self, myPos, 250, 100, DMG_BLAST, true, true, {DisableVisibilityCheck=true, Force=80})
 
 	self:Remove()
-    ]]
-    self:DeathEffects()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:GravGunPunt(ply)
@@ -171,17 +165,14 @@ function ENT:GravGunPunt(ply)
 end
 
 function ENT:DeathEffects()
-	--[[
-    local dataF = EffectData()
-	dataF:SetOrigin(data.HitPos)
+	local dataF = EffectData()
+	dataF:SetOrigin(self:GetPos())
 	util.Effect("cball_bounce", dataF)
 
 	dataF = EffectData()
-	dataF:SetOrigin(data.HitPos)
-	dataF:SetNormal(data.HitNormal)
+	dataF:SetOrigin(self:GetPos())
 	dataF:SetScale(50)
 	util.Effect("AR2Impact", dataF)
-    ]]
 
     local myPos = self:GetPos()
 	effects.BeamRingPoint(myPos, 0.2, 12, 512, 64, 0, color1, {material="sprites/lgtning.vmt", framerate=2, flags=0, speed=0, delay=0, spread=0})
@@ -193,20 +184,13 @@ function ENT:DeathEffects()
 
 	VJ_EmitSound(self, "weapons/physcannon/energy_sing_explosion2.wav", 150)
 	util.ScreenShake(myPos, 20, 150, 1, 500)
-    
-    local owner = self.Owner
-    if not IsValid(owner) then
-        owner = self
-    end
-    
+
     local dmg = DamageInfo()
-    dmg:SetAttacker(owner)
+    dmg:SetAttacker(self)
     dmg:SetInflictor(self)
-    dmg:SetDamageType(DMG_CLUB)
+    dmg:SetDamageType(DMG_GENERIC)
     dmg:SetDamage(60)
     util.BlastDamageInfo(dmg, self:GetPos(), 150)
-    
-    self:Remove()
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------------------------------------------------

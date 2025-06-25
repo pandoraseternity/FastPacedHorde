@@ -15,6 +15,8 @@ ENT.RadiusDamageType = DMG_CLUB -- Damage type
 --ENT.SoundTbl_Idle = {"npc/antlion/antlion_poisonball1.wav"}
 ENT.SoundTbl_OnCollide = {"physics/concrete/boulder_impact_hard1.wav","physics/concrete/boulder_impact_hard2.wav", "physics/concrete/boulder_impact_hard3.wav"}
 
+ENT.CollisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT
+ENT.CollisionGroupType = COLLISION_GROUP_PLAYER_MOVEMENT
 ENT.IdleSoundLevel = 200
 ENT.OnCollideSoundPitch1 = 150
 ENT.OnCollideSoundPitch1 = 140
@@ -32,7 +34,7 @@ end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:CustomOnInitialize()
 --ParticleEffectAttach("blood_impact_yellow_01", PATTACH_ABSORIGIN_FOLLOW, self, 0)
---ParticleEffectAttach("vj_acid_idle", PATTACH_ABSORIGIN_FOLLOW, self, 0)
+--ParticleEffectAttach("antlion_spit_trail", PATTACH_ABSORIGIN_FOLLOW, self, 0)
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:DeathEffects(data,phys)
@@ -66,6 +68,28 @@ function ENT:DeathEffects(data,phys)
 		end)
 	end
 end
+
+function ENT:Test()
+if SERVER then
+--PrintMessage( HUD_PRINTTALK, "hi" )
+end
+end
+
+function ENT:CustomOnTakeDamage( dmginfo )
+    if dmginfo:GetDamageType() == DMG_CLUB then
+		local Eff = EffectData()
+		Eff:SetOrigin(self:GetPos())
+		Eff:SetScale(5)
+		Eff:SetMagnitude(5)
+		Eff:SetFlags(0)
+		util.Effect("AirboatGunImpact",Eff)
+        self.RadiusDamage = 500
+		self.RadiusDamageRadius = 250
+        --self:Test()
+    end
+end
+
+
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:CustomOnThink()
 --ParticleEffectAttach("blood_impact_yellow_01", PATTACH_ABSORIGIN_FOLLOW, self, 0)

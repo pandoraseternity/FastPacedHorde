@@ -6,7 +6,7 @@ include('shared.lua')
 	without the prior written consent of the author, unless otherwise indicated for stand-alone materials.
 -----------------------------------------------*/
 ENT.Model = {"models/combine_turrets/floor_turret.mdl"} -- The game will pick a random model from the table when the SNPC is spawned | Add as many as you want
-ENT.StartHealth = 400
+ENT.StartHealth = 800
 ENT.SightDistance = 8000
 ENT.HullType = HULL_HUMAN
 ENT.MovementType = VJ_MOVETYPE_STATIONARY 
@@ -60,8 +60,6 @@ ENT.Sentry_CurrentParameter = 0
 ENT.Sentry_NextAlarmT = 0
 ENT.Sentry_ControllerStatus = 0 -- Current status of the controller, 0 = Idle | 1 = Alerted
 
-ENT.Horde_Immune_Status_All = true
-
 -- ====== Sounds ====== --
 ENT.HasSounds = true
 ENT.SoundTbl_CombatIdle = {
@@ -97,6 +95,9 @@ function ENT:CustomOnInitialize()
 end
 
 function ENT:CustomOnThink_AIEnabled()
+	if self:Horde_HasDebuff(HORDE.Status_Bleeding) then
+		self:Horde_RemoveDebuff(HORDE.Status_Bleeding)
+	end
 	if self.Dead then return end
 	local eneValid = IsValid(self:GetEnemy())
 	-- Make it not reset its pose parameters while its transitioning from Alert to Idle

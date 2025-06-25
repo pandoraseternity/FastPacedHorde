@@ -3,6 +3,8 @@ AddCSLuaFile("cl_init.lua")
 include("shared.lua")
 ENT.CleanupPriority = 2
 
+util.AddNetworkString("PrintSkullNotify")
+
 function ENT:Initialize()
     self:SetModel("models/horde/token/skull_2015.mdl")
     self:PhysicsInit(SOLID_VPHYSICS)
@@ -39,8 +41,8 @@ function ENT:StartTouch(ent)
     if ent:IsPlayer() then
         ent:Horde_AddSkullTokens(1)
 		ent:Horde_SyncEconomy()
-        sound.Play("items/battery_pickup.wav", self:GetPos())
-        HORDE:SendNotification("Skull token found!", 0, ent)
+        net.Start("PrintSkullNotify")
+        net.Send(ent)
         self:Remove()
     end
 end

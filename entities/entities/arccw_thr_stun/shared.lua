@@ -111,6 +111,7 @@ function ENT:FlashBang()
         ]]
         if k:IsNPC() then
             k:Horde_AddDebuffBuildup(HORDE.Status_Stun, 500, attacker, k:GetPos())
+			k:NextThink(CurTime() + 5)
         end
     end
 end

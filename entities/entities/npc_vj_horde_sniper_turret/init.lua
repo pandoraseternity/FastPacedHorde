@@ -54,8 +54,6 @@ ENT.Sentry_CurrentParameter = 0
 ENT.Sentry_NextAlarmT = 0
 ENT.Sentry_ControllerStatus = 0 -- Current status of the controller, 0 = Idle | 1 = Alerted
 
-ENT.Horde_Immune_Status_All = true
-
 -- ====== Sounds ====== --
 ENT.HasSounds = true
 ENT.SoundTbl_CombatIdle = {
@@ -88,6 +86,12 @@ function ENT:CustomOnInitialize()
 		self:SetModelScale(1.5)
 		HORDE:DropTurret(self)
 	end)
+end
+
+function ENT:CustomOnThink_AIEnabled()
+	if self:Horde_HasDebuff(HORDE.Status_Bleeding) then
+		self:Horde_RemoveDebuff(HORDE.Status_Bleeding)
+	end
 end
 
 function ENT:CustomRangeAttackCode()

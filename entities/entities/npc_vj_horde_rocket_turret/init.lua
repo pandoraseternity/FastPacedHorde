@@ -44,8 +44,6 @@ ENT.SoundTbl_FootStep = {}
 ENT.CanTurnWhileStationary = false
 ENT.HasOnPlayerSight = true
 
-ENT.Horde_Immune_Status_All = true
-
 -- ====== Sounds ====== --
 ENT.HasSounds = true
 ENT.SoundTbl_CombatIdle = {
@@ -117,6 +115,12 @@ function ENT:CustomRangeAttackCode_AfterProjectileSpawn(projectile)
 		dir:Normalize()
 		local vel = dir * 4000
 		phys:SetVelocity(vel)
+	end
+end
+
+function ENT:CustomOnThink_AIEnabled()
+	if self:Horde_HasDebuff(HORDE.Status_Bleeding) then
+		self:Horde_RemoveDebuff(HORDE.Status_Bleeding)
 	end
 end
 

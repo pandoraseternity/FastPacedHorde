@@ -5,12 +5,12 @@ ENT.Spawnable 			= false
 
 AddCSLuaFile()
 
-ENT.CollisionGroup = COLLISION_GROUP_PROJECTILE
-ENT.CollisionGroupType = COLLISION_GROUP_PROJECTILE
+ENT.CollisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT
+ENT.CollisionGroupType = COLLISION_GROUP_PLAYER_MOVEMENT
 
 function ENT:Initialize()
     if SERVER then
-        self:SetModel(self.Model)
+        --self:SetModel(self.Model)
         self:SetMoveType( MOVETYPE_VPHYSICS )
         self:PhysicsInitSphere(1)
 

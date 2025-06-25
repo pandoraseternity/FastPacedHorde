@@ -25,7 +25,7 @@ ENT.SoundTbl_FootStep = {"npc/zombie/foot1.wav","npc/zombie/foot2.wav","npc/zomb
 ENT.SoundTbl_Idle = {"npc/zombie/zombie_voice_idle1.wav","npc/zombie/zombie_voice_idle2.wav","npc/zombie/zombie_voice_idle3.wav","npc/zombie/zombie_voice_idle4.wav","npc/zombie/zombie_voice_idle5.wav","npc/zombie/zombie_voice_idle6.wav"}
 ENT.SoundTbl_Alert = {"npc/zombie/zombie_alert1.wav","npc/zombie/zombie_alert2.wav","npc/zombie/zombie_alert3.wav"}
 ENT.SoundTbl_MeleeAttack = {"npc/zombie/zo_attack1.wav","npc/zombie/zo_attack2.wav"}
-ENT.SoundTbl_MeleeAttackMiss = {"vj_zombies/slow/miss1.wav", "vj_zombies/slow/miss2.wav", "vj_zombies/slow/miss3.wav", "vj_zombies/slow/miss4.wav"}
+ENT.SoundTbl_MeleeAttackMiss = {"zsszombie/miss1.wav","zsszombie/miss2.wav","zsszombie/miss3.wav","zsszombie/miss4.wav"}
 ENT.SoundTbl_Pain = {"npc/zombie/zombie_pain1.wav","npc/zombie/zombie_pain2.wav","npc/zombie/zombie_pain3.wav","npc/zombie/zombie_pain4.wav","npc/zombie/zombie_pain5.wav","npc/zombie/zombie_pain6.wav"}
 ENT.SoundTbl_Death = {"npc/zombie/zombie_die1.wav","npc/zombie/zombie_die2.wav","npc/zombie/zombie_die3.wav"}
 
@@ -33,11 +33,12 @@ ENT.GeneralSoundPitch1 = 100
 ENT.GeneralSoundPitch2 = 100
 ENT.HasDeathRagdoll = false
 ENT.HasGibOnDeath = true
+ENT.CVar		= "horde_difficulty"
 
 function ENT:CustomOnInitialize()
     self:SetBodygroup(1,1)
     self:SetColor(Color(255, 0, 255))
-    self.HeadHealth = self.HeadHealth * HORDE.difficulty_health_multiplier[HORDE.difficulty]
+    self.HeadHealth = self.HeadHealth * HORDE.Difficulty[HORDE.CurrentDifficulty].healthMultiplier
     self:SetModelScale(1.25, 0)
     self:ManipulateBoneScale(0, Vector(2,2,2))
     self:ManipulateBoneScale(9, Vector(2,2,4))
@@ -46,10 +47,40 @@ function ENT:CustomOnInitialize()
 	self:AddRelationship("npc_headcrab_fast D_LI 99")
 end
 
+ENT.explode = 0
+function ENT:CustomOnThink_AIEnabled()
+if cvars.Number(self.CVar, 1) >= 3 && IsValid(self) && IsValid(self:GetEnemy()) && self:GetPos():Distance(self:GetEnemy():GetPos()) <= 90 && self:Visible(self:GetEnemy()) && self.explode == 0 then
+if self:GetPos():Distance(self:GetEnemy():GetPos()) > 90 then return end
+    local e = EffectData()
+	self:SetColor(Color(255, 255, 255))
+	sound.Play("ocpack/stalkerwarning.wav", self:GetPos())
+	self.explode = 1
+timer.Simple(1.25,function() if IsValid(self) then
+	sound.Play("npc/antlion/antlion_burst1.wav", self:GetPos())
+    e:SetOrigin(self:GetPos())
+    util.Effect("exploder_explosion", e, true, true)
+
+    local dmg = DamageInfo()
+    dmg:SetInflictor(self)
+    dmg:SetAttacker(self)
+    dmg:SetDamageType(DMG_ACID)
+    dmg:SetDamage(100)
+    --util.BlastDamageInfo(dmg, self:GetPos(), 180)
+	util.VJ_SphereDamage(self,self,self:GetPos(),250,50,DMG_ACID,false,true, {DisableVisibilityCheck=false, Force=80})
+	for k, destroy in pairs(ents.FindInSphere(self:GetPos(), 180)) do
+		if destroy:IsNPC() or destroy:IsNextBot() && self:Disposition(destroy) == D_LI then
+			destroy:SetHealth(math.Clamp( destroy:GetMaxHealth(), 0, destroy:Health() + destroy:GetMaxHealth() * 0.12 ))
+		end
+	self:SetHealth(1)
+	self:TakeDamageInfo(dmg)
+end end end)
+
+end
+end
+
 function ENT:CustomOnDeath_BeforeCorpseSpawned(dmginfo, hitgroup)
-    local HordeMelee_HeadshotCheck = dmginfo:GetInflictor().WasHeadshot
-    if hitgroup == HITGROUP_HEAD or HordeMelee_HeadshotCheck then
-        self.HasDeathRagdoll = true
+    if hitgroup == HITGROUP_HEAD then
+        --self.HasDeathRagdoll = true
         return
     end
     local e = EffectData()
@@ -60,15 +91,23 @@ function ENT:CustomOnDeath_BeforeCorpseSpawned(dmginfo, hitgroup)
     dmg:SetInflictor(self)
     dmg:SetAttacker(self)
     dmg:SetDamageType(DMG_ACID)
-    dmg:SetDamage(50)
-    util.BlastDamageInfo(dmg, self:GetPos(), 250)
+    dmg:SetDamage(100)
+    --util.BlastDamageInfo(dmg, self:GetPos(), 250)
+	util.VJ_SphereDamage(self,self,self:GetPos(),250,50,DMG_ACID,false,true, {DisableVisibilityCheck=false, Force=80})
 
-    sound.Play("vj_base/ambience/acid_splat.wav", self:GetPos())
+	for k, destroy in pairs(ents.FindInSphere(self:GetPos(), 150)) do
+	if destroy:IsNPC() or destroy:IsNextBot() && self:Disposition(destroy) == D_LI then
+	destroy:SetHealth(math.Clamp( destroy:GetMaxHealth(), 0, destroy:Health() + destroy:GetMaxHealth() * 0.12 ))
+	end
+
+    sound.Play("vj_acid/acid_splat.wav", self:GetPos())
+	self:SetHealth(1)
+	self:TakeDamageInfo( dmg )
+end
 end
 
 function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo, hitgroup)
-    local HordeMelee_HeadshotCheck = dmginfo:GetInflictor().WasHeadshot
-    if hitgroup == HITGROUP_HEAD or HordeMelee_HeadshotCheck then
+    if hitgroup == HITGROUP_HEAD then
         self.HeadHealth = self.HeadHealth - dmginfo:GetDamage()
         if self.HeadHealth <= 0 then
             self:SetHealth(1)
@@ -77,7 +116,7 @@ function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo, hitgroup)
     elseif HORDE:IsBlastDamage(dmginfo) or HORDE:IsFireDamage(dmginfo) then
         dmginfo:ScaleDamage(1.5)
     elseif HORDE:IsPoisonDamage(dmginfo) then
-		dmginfo:SetDamage(dmginfo:GetDamage() * 0.25)
+		dmginfo:SetDamage(dmginfo:GetDamage() * 0.5)
     end
 end
 

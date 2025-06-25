@@ -32,19 +32,43 @@ ENT.SlowPlayerOnMeleeAttackTime = 5 -- How much time until player's Speed resets
 ENT.MeleeAttackBleedEnemy = false -- Should the player bleed when attacked by melee
 ENT.FootStepTimeRun = 0.5 -- Next foot step sound when it is running
 ENT.FootStepTimeWalk = 0.7 -- Next foot step sound when it is walking
+
+ENT.RangeDistance = 2000 -- This is how far away it can shoot
+ENT.AnimTbl_RangeAttack = {"vjseq_weapon_attack1","vjseq_weapon_attack2"}
+ENT.RangeToMeleeDistance = 200 -- How close does it have to be until it uses melee?
+ENT.RangeAttackAngleRadius = 100 -- What is the attack angle radius? | 100 = In front of the SNPC | 180 = All around the SNPC
+	-- ====== Timer Variables ====== --
+	-- Set this to false to make the attack event-based:
+ENT.TimeUntilRangeAttackProjectileRelease = 0.5 -- How much time until the projectile code is ran?
+ENT.NextRangeAttackTime = 8 -- How much time until it can use a range attack?
+ENT.NextAnyAttackTime_Range = 0.1 -- How much time until it can use any attack again? | Counted in Seconds
+ENT.RangeAttackPos_Up = 70
+ENT.RangeAttackPos_Right = -10
+
 	-- ====== Sound File Paths ====== --
 -- Leave blank if you don't want any sounds to play
-ENT.SoundTbl_FootStep = {"npc/zombie/foot1.wav", "npc/zombie/foot2.wav", "npc/zombie/foot3.wav"}
-ENT.SoundTbl_MeleeAttackExtra = {"vj_zombies/panic/Z_Hit-01.wav", "vj_zombies/panic/Z_Hit-02.wav", "vj_zombies/panic/Z_Hit-03.wav", "vj_zombies/panic/Z_Hit-04.wav", "vj_zombies/panic/Z_Hit-05.wav", "vj_zombies/panic/Z_Hit-06.wav"}
-ENT.SoundTbl_MeleeAttackMiss = {"vj_zombies/panic/z-swipe-1.wav", "vj_zombies/panic/z-swipe-2.wav", "vj_zombies/panic/z-swipe-3.wav", "vj_zombies/panic/z-swipe-4.wav", "vj_zombies/panic/z-swipe-5.wav", "vj_zombies/panic/z-swipe-6.wav"}
+ENT.SoundTbl_FootStep = {"zsszombie/foot1.wav","zsszombie/foot2.wav","zsszombie/foot3.wav","zsszombie/foot4.wav"}
+ENT.SoundTbl_Idle = {"zsszombie/zombie_idle1.wav","zsszombie/zombie_idle2.wav","zsszombie/zombie_idle3.wav","zsszombie/zombie_idle4.wav","zsszombie/zombie_idle5.wav","zsszombie/zombie_idle6.wav"}
+ENT.SoundTbl_Alert = {"zsszombie/zombie_alert1.wav","zsszombie/zombie_alert2.wav","zsszombie/zombie_alert3.wav","zsszombie/zombie_alert4.wav"}
+ENT.SoundTbl_MeleeAttack = {"zsszombie/zombie_attack_1.wav","zsszombie/zombie_attack_2.wav","zsszombie/zombie_attack_3.wav","zsszombie/zombie_attack_4.wav","zsszombie/zombie_attack_5.wav","zsszombie/zombie_attack_6.wav"}
+ENT.SoundTbl_MeleeAttackMiss = {"zsszombie/miss1.wav","zsszombie/miss2.wav","zsszombie/miss3.wav","zsszombie/miss4.wav"}
+ENT.SoundTbl_Pain = {"zsszombie/zombie_pain1.wav","zsszombie/zombie_pain2.wav","zsszombie/zombie_pain3.wav","zsszombie/zombie_pain4.wav","zsszombie/zombie_pain5.wav","zsszombie/zombie_pain6.wav","zsszombie/zombie_pain7.wav","zsszombie/zombie_pain8.wav"}
+ENT.SoundTbl_Death = {"zsszombie/zombie_die1.wav","zsszombie/zombie_die2.wav","zsszombie/zombie_die3.wav","zsszombie/zombie_die4.wav","zsszombie/zombie_die5.wav","zsszombie/zombie_die6.wav"}
 
 ENT.GeneralSoundPitch1 = 60
 ENT.GeneralSoundPitch2 = 60
 ENT.CanFlinch = 1
+ENT.CVar		= "horde_difficulty"
 ---------------------------------------------------------------------------------------------------------------------------------------------
-function ENT:CustomOnInitialize()
-	self:AddRelationship("npc_headcrab_poison D_LI 99")
-	self:AddRelationship("npc_headcrab_fast D_LI 99")
+
+function ENT:OnThinkActive()
+
+end
+
+function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo,hitgroup)
+if hitgroup == HITGROUP_HEAD then 
+	dmginfo:ScaleDamage(1.5)
+end
 end
 
 -- Carrier
@@ -102,16 +126,40 @@ function ENT:Init()
 		self.SoundTbl_Pain = sdMale_Pain
 		self.SoundTbl_Death = sdMale_Death
 	end
+	self:AddRelationship("npc_headcrab_fast D_LI 99")
+	
+	local pos = self:GetPos()
+	local medictf2 = ents.FindInSphere(pos, 300)
+	local nearest = nil 
+	local nearestDist = 500000
+	timer.Create( "groupup" .. self:EntIndex(), 3, 0, function() if IsValid(self) && IsValid(self:GetEnemy()) then
+		local medictf2 = ents.FindInSphere(pos, 300)
+        for _, ent in pairs(medictf2) do
+			local dist = ent:GetPos():DistToSqr(self:GetPos())
+            if IsValid(ent) && ent:IsNPC() && ent:Disposition(self) != D_HI && ent:GetPos():Distance(self:GetPos()) <= 2500 then
+				local dist = ent:GetPos():DistToSqr(self:GetPos())
+                nearest = ent
+                nearestDist = dist
+			end
+			if nearest then
+				local hello = nearest
+				if CLIENT && self:BeingLookedAtByLocalPlayer() == false then
+				self:SetPos(hello:GetPos() + hello:GetRight()*math.random(-30,30) + hello:GetForward()*math.random(-30,30))
+				end
+			end
+		end
+	end end )
+	
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:OnInput(key, activator, caller, data)
 	if key == "step" then
 		self:PlayFootstepSound()
 	elseif key == "melee" then
-		self.MeleeAttackDamage = 15
+		self.MeleeAttackDamage = 10
 		self:ExecuteMeleeAttack()
 	elseif key == "melee_push" then
-		self.MeleeAttackDamage = 20
+		self.MeleeAttackDamage = 13
 		self:ExecuteMeleeAttack()
 	end
 end
@@ -137,6 +185,10 @@ function ENT:HandleGibOnDeath(dmginfo, hitgroup)
 		end
 		return true, {AllowCorpse = true, AllowAnim = true}
 	end
+end
+
+function ENT:Draw()
+	render.DrawWireframeBox(self:GetPos(), Angle( 0, 0, 0 ), self:OBBMins(), self:OBBMaxs(), Color( 255, 255, 255 ), true )
 end
 
 VJ.AddNPC("Sprinter","npc_vj_horde_sprinter", "Zombies")

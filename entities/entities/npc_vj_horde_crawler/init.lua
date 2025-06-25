@@ -16,24 +16,20 @@ ENT.AnimTbl_MeleeAttack = {"vjseq_melee"} -- Melee Attack Animations
 ENT.MeleeAttackDistance = 32 -- How close does it have to be until it attacks?
 ENT.MeleeAttackDamageDistance = 85 -- How far does the damage go?
 ENT.TimeUntilMeleeAttackDamage = false -- This counted in seconds | This calculates the time until it hits something
-ENT.MeleeAttackDamage = 10
+ENT.MeleeAttackDamage = 15
 ENT.TimeUntilMeleeAttackDamage = 0.2
 ENT.NextAnyAttackTime_Melee = 0.6
 ENT.HasLeapAttack = false -- Should the SNPC have a leap attack?
 ENT.HasExtraMeleeAttackSounds = true -- Set to true to use the extra melee attack sounds
 	-- ====== Sound File Paths ====== --
 -- Leave blank if you don't want any sounds to play
-ENT.AnimTbl_Run = ACT_WALK
 
+ENT.AnimTbl_Run = ACT_WALK
 ENT.GeneralSoundPitch1 = 60
 ENT.GeneralSoundPitch2 = 60
 ENT.CanFlinch = 1
+ENT.CVar		= "horde_difficulty"
 ---------------------------------------------------------------------------------------------------------------------------------------------
-function ENT:CustomOnInitialize()
-	--self:SetSkin(math.random(0,3))
-	self:AddRelationship("npc_headcrab_poison D_LI 99")
-	self:AddRelationship("npc_headcrab_fast D_LI 99")
-end
 
 ENT.SoundTbl_FootStep = {"npc/zombie/foot1.wav", "npc/zombie/foot2.wav", "npc/zombie/foot3.wav"}
 ENT.SoundTbl_Idle = {"vj_zombies/fast/fzombie_idle1.wav", "vj_zombies/fast/fzombie_idle2.wav", "vj_zombies/fast/fzombie_idle3.wav", "vj_zombies/fast/fzombie_idle4.wav", "vj_zombies/fast/fzombie_idle5.wav"}
@@ -70,13 +66,30 @@ function ENT:PreInit()
 			self.Model = "models/vj_zombies/fast4.mdl"
 		end
 	end
+	
+if cvars.Number(self.CVar, 1) >= 3 then
+self.HasLeapAttack = true
+self.LeapAttackDamage = 25
+self.LeapDistance = 200 -- The distance of the leap, for example if it is set to 500, when the SNPC is 500 Unit away, it will jump
+self.LeapToMeleeDistance = 100 -- How close does it have to be until it uses melee?
+self.LeapAttackDamageDistance = 100 -- How far does the damage go?
+self.LeapAttackVelocityForward = 300 -- How much forward force should it apply?
+self.LeapAttackVelocityUp = 250 -- How much upward force should it apply?
+self.TimeUntilLeapAttackDamage = 0.9 -- How much time until it runs the leap damage code?
+self.TimeUntilLeapAttackVelocity = 0.5 -- How much time until it runs the velocity code?
+self.NextLeapAttackTime = 10 -- How much time until it can use a leap attack?
+end
+	
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:Init()
 	self:SetCollisionBounds(Vector(13, 13, 50), Vector(-13, -13, 0))
+	
+	--self:SetSkin(math.random(0,3))
+	--self:AddRelationship("npc_headcrab_poison D_LI 99")
+	self:AddRelationship("npc_headcrab_fast D_LI 99")
 end
 ---------------------------------------------------------------------------------------------------------------------------------------------
---[[
 function ENT:OnInput(key, activator, caller, data)
 	if key == "step" then
 		self:PlayFootstepSound()
@@ -84,7 +97,6 @@ function ENT:OnInput(key, activator, caller, data)
 		self:ExecuteMeleeAttack()
 	end
 end
-]]
 ---------------------------------------------------------------------------------------------------------------------------------------------
 function ENT:TranslateActivity(act)
 	if act == ACT_IDLE then
@@ -104,4 +116,5 @@ function ENT:OnLeapAttack(status, enemy)
 		return VJ.CalculateTrajectory(self, enemy, "Curve", self:GetPos() + self:OBBCenter(), enemy:GetPos() + enemy:OBBCenter(), 25) + self:GetForward() * 80
 	end
 end
+
 VJ.AddNPC("Crawler","npc_vj_horde_crawler", "Zombies")

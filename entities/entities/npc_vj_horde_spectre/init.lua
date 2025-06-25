@@ -1,3 +1,4 @@
+
 AddCSLuaFile("shared.lua")
 include('shared.lua')
 /*-----------------------------------------------
@@ -8,6 +9,10 @@ include('shared.lua')
 ENT.Model = {"models/zombie/fast.mdl"} -- The game will pick a random model from the table when the SNPC is spawned | Add as many as you want
 ENT.StartHealth = 100
 ENT.HullType = HULL_HUMAN
+ENT.HasHealthRegeneration = false -- Can the SNPC regenerate its health?
+ENT.HealthRegenerationAmount = 1 -- How much should the health increase after every delay?
+ENT.HealthRegenerationDelay = VJ_Set(0.1,0.1) -- How much time until the health increases
+ENT.HealthRegenerationResetOnDmg = false -- Should the delay reset when it receives damage? 
 ---------------------------------------------------------------------------------------------------------------------------------------------
 ENT.VJ_NPC_Class = {"CLASS_PLAYER_ALLY", "CLASS_COMBINE"} -- NPCs with the same class with be allied to each other
 ENT.FriendsWithAllPlayerAllies = true
@@ -15,10 +20,12 @@ ENT.PlayerFriendly = true
 ENT.BloodColor = "Red" -- The blood type, this will determine what it should use (decal, particle, etc.)
 ENT.HasMeleeAttack = true -- Should the SNPC have a melee attack?
 ENT.AnimTbl_MeleeAttack = {ACT_MELEE_ATTACK1} -- Melee Attack Animations
-ENT.MeleeAttackDistance = 32 -- How close does it have to be until it attacks?
+ENT.MeleeAttackDistance = 48 -- How close does it have to be until it attacks?
 ENT.MeleeAttackDamageDistance = 50 -- How far does the damage go?
+ENT.MeleeAttackAngleRadius = 100 -- What is the attack angle radius? | 100 = In front of the SNPC | 180 = All around the SNPC
+ENT.MeleeAttackDamageAngleRadius = 100 -- What is the damage angle radius? | 100 = In front of the SNPC | 180 = All around the SNPC
 ENT.TimeUntilMeleeAttackDamage = 0.4 -- This counted in seconds | This calculates the time until it hits something
-ENT.MeleeAttackDamage = 30
+ENT.MeleeAttackDamage = 45
 ENT.MeleeAttackBleedEnemy = false -- Should the player bleed when attacked by melee
 ENT.HasLeapAttack = true -- Should the SNPC have a leap attack?
 ENT.NextAnyAttackTime_Melee = 0.5
@@ -32,7 +39,7 @@ ENT.LeapAttackExtraTimers = {0.4,0.6,0.8,1} -- Extra leap attack timers | it wil
 ENT.TimeUntilLeapAttackVelocity = 0.2 -- How much time until it runs the velocity code?
 ENT.LeapAttackVelocityForward = 300 -- How much forward force should it apply?
 ENT.LeapAttackVelocityUp = 250 -- How much upward force should it apply?
-ENT.LeapAttackDamage = 40
+ENT.LeapAttackDamage = 60
 ENT.LeapAttackDamageDistance = 100 -- How far does the damage go?
 ENT.FootStepTimeRun = 0.4 -- Next foot step sound when it is running
 ENT.FootStepTimeWalk = 0.6 -- Next foot step sound when it is walking
@@ -92,6 +99,10 @@ function ENT:Shockwave(delay)
 	end)
 end
 
+function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo,hitgroup)
+	dmginfo:ScaleDamage(0.75)
+end
+
 function ENT:Roar()
 	if not self:IsValid() then return end
     sound.Play("horde/spectres/abyssal_roar.ogg", self:GetPos(), 75, 100)
@@ -107,13 +118,15 @@ end
 function ENT:Horde_SetGreaterSpectre()
 	self:SetModelScale(1.5)
 	self.HasLeapAttack = false
-	self.MeleeAttackDamage = self.MeleeAttackDamage * 1.65
+	self.MeleeAttackDamage = self.MeleeAttackDamage * 2
 	self.NextAnyAttackTime_Melee = 0.75
-	self:SetHealth(1.25 * (90 + 2 * 16 * self.properties.level))
+	self:SetMaxHealth((250 + 2 * 16 * self.properties.level) * 2)
+	self:SetHealth((250 + 2 * 16 * self.properties.level) * 2)
 end
 
 function ENT:CustomOnInitialize()
-	self:SetCollisionBounds(Vector(0, 0, 0), Vector(0, 0, 0))
+	--self:SetCollisionBounds(Vector(0, 0, 0), Vector(0, 0, 0))
+	self:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
 	self.AnimTbl_Run = ACT_RUN
     if self.properties.abyssal_might == true then
 		local id = self:GetCreationID()
@@ -131,9 +144,10 @@ function ENT:CustomOnInitialize()
 		e:SetScale(0.25)
 	util.Effect("abyssal_roar", e, true, true)
     self:SetRenderMode(RENDERMODE_TRANSCOLOR)
-    self:SetColor(Color(0, 0, 100, 200))
-	self.MeleeAttackDamage = self.MeleeAttackDamage + 6 * self.properties.level
-	self:SetHealth(90 + 2 * 16 * self.properties.level)
+    self:SetColor(Color(0, 0, 0, 200))
+	self.MeleeAttackDamage = self.MeleeAttackDamage + 12 * self.properties.level
+	self:SetMaxHealth(250 + 2 * 16 * self.properties.level)
+	self:SetHealth(250 + 2 * 16 * self.properties.level)
 	self:AddRelationship("npc_turret_floor D_LI 99")
 	self:AddRelationship("npc_vj_horde_combat_bot D_LI 99")
 	self:AddRelationship("npc_manhack D_LI 99")

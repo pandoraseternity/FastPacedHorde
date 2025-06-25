@@ -11,8 +11,8 @@ AddCSLuaFile()
 
 ENT.Model = "models/items/ar2_grenade.mdl"
 ENT.Ticks = 0
-ENT.CollisionGroup = COLLISION_GROUP_PLAYER
-ENT.CollisionGroupType = COLLISION_GROUP_PLAYER
+ENT.CollisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT
+ENT.CollisionGroupType = COLLISION_GROUP_PLAYER_MOVEMENT
 ENT.Removing = nil
 ENT.StartPos = nil
 ENT.PlaySoundTimer = 0
@@ -69,8 +69,8 @@ function ENT:CustomOnInitialize()
     self.SpawnTime = CurTime()
     self.PlaySoundTimer = CurTime()
     self.StartPos = self:GetPos()
-    
-    self:SetCollisionGroup(COLLISION_GROUP_PLAYER)
+
+    self:SetCollisionGroup(COLLISION_GROUP_PLAYER_MOVEMENT)
     self.ExplodeTimer = CurTime() + 0.4
 
     if self:GetCharged() == 1 then
@@ -182,7 +182,7 @@ function ENT:Detonate(hitpos, ent)
                     if HORDE:IsEnemy(tr.Entity) then
                         tr.Entity:TakeDamageOverTime(self.Owner, self:GetSpellBaseDamage(1) / 8, DMG_GENERIC, 0.2, 1)
                     end
-                    
+
                 elseif self:GetCharged() == 4 then
                     for _, e in pairs(ents.FindInSphere(hitpos, 150 * 1.25 * radius_mult)) do
                         e:TakeDamageOverTime(self.Owner, self:GetSpellBaseDamage(1) / 6, DMG_GENERIC, 0.2, 1)
@@ -197,7 +197,7 @@ function ENT:Detonate(hitpos, ent)
             if self.Draconic == true then
                 local dmg_splash = DamageInfo()
                 dmg_splash:SetAttacker(self.Owner)
-                dmg_splash:SetInflictor(self)
+                dmg_splash:SetInflictor(tr.Entity)
                 dmg_splash:SetDamageType(DMG_SHOCK)
                 dmg_splash:SetDamage(self:GetSpellBaseDamage(2) * dmg_mult)
                 dmg_splash:SetDamageCustom(HORDE.DMG_PLAYER_FRIENDLY)
@@ -205,7 +205,7 @@ function ENT:Detonate(hitpos, ent)
             else
                 local dmg_splash = DamageInfo()
                 dmg_splash:SetAttacker(self.Owner)
-                dmg_splash:SetInflictor(self)
+                dmg_splash:SetInflictor(tr.Entity)
                 dmg_splash:SetDamageType(DMG_BURN)
                 dmg_splash:SetDamage(self:GetSpellBaseDamage(2) * dmg_mult)
                 dmg_splash:SetDamageCustom(HORDE.DMG_SPLASH)
@@ -228,7 +228,7 @@ function ENT:PhysicsCollide(colData, collider)
         else
             ParticleEffect("solar_orb_explode", pos, Angle(0,0,0), self.Owner)
         end
-        
+
         sound.Play("horde/weapons/solar_seal/solar_orb_hit.ogg", pos, 80, math.random(70, 90))
     elseif self:GetCharged() == 1 then
         sound.Play("horde/weapons/solar_seal/solar_orb_charged_1_hit.ogg", pos, 100, math.random(90, 110))
@@ -243,7 +243,7 @@ function ENT:PhysicsCollide(colData, collider)
         else
             ParticleEffect("solar_orb_charged_2_explode", pos, Angle(0,0,0), self.Owner)
         end
-        
+
         sound.Play("horde/weapons/solar_seal/solar_orb_charged_2_hit.ogg", pos, 100, math.random(90, 110))
     elseif self:GetCharged() >= 3 then
         if self:GetCharged() == 3 then

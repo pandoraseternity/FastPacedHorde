@@ -3,7 +3,7 @@ ENT.PrintName 			= "Javelin Round"
 ENT.Model = "models/weapons/w_missile_launch.mdl"
 ENT.LifeTime = 10 -- Time to removal
 ENT.EnableGravity = false
-ENT.ProjectileDamage = 1150 -- Projectile/explosion damage
+ENT.ProjectileDamage = 1500 -- Projectile/explosion damage
 ENT.ProjectileUnarmedDamageType = DMG_CLUB -- Damage type when hitting something unarmed
 ENT.ProjectileExplosionDamageType = DMG_BLAST -- Explosion damage type
 ENT.ProjectileDamageRadius = 200 -- Explosion radius
@@ -70,11 +70,11 @@ function ENT:CustomOnThink()
 
 		local phys = self:GetPhysicsObject()
 		if (!IsValid( phys )) then self:Remove() return end
-		phys:ApplyForceCenter(self:GetForward() * 5000)
+		phys:ApplyForceCenter(self:GetForward() * 500)
 	else
 		local phys = self:GetPhysicsObject()
 		if (!IsValid( phys )) then self:Remove() return end
-		phys:ApplyForceCenter(self:GetForward() * 5000)
+		phys:ApplyForceCenter(self:GetForward() * 500)
 	end
 end
 

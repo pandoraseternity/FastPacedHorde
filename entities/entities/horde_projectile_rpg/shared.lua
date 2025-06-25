@@ -34,7 +34,7 @@ function ENT:CustomInitialize()
 end
 
 function ENT:CustomOnExplode()
-    ParticleEffect("vj_explosion2", self:GetPos(), Angle(0,0,0), nil)
+    --ParticleEffect("vj_explosion2", self:GetPos(), Angle(0,0,0), nil)
 	local expLight = ents.Create("light_dynamic")
 	expLight:SetKeyValue("brightness", "4")
 	expLight:SetKeyValue("distance", "300")

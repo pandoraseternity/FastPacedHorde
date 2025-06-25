@@ -6,9 +6,9 @@ include('shared.lua')
 	without the prior written consent of the author, unless otherwise indicated for stand-alone materials.
 -----------------------------------------------*/
 ENT.Model = {"models/dog.mdl"} -- The game will pick a random model from the table when the SNPC is spawned | Add as many as you want
-ENT.StartHealth = 1400
+ENT.StartHealth = 2500
 ENT.SightDistance = 8000
-ENT.HullType = HULL_HUMAN
+ENT.HullType = HULL_LARGE
 ENT.MovementType = VJ_MOVETYPE_GROUND
 ENT.DropWeaponOnDeath = false -- Should it drop its weapon on death?
 ENT.SightAngle = 180 -- The sight angle | Example: 180 would make the it see all around it | Measured in degrees and then converted to radians
@@ -66,8 +66,6 @@ ENT.RangeToMeleeDistance = 0 -- How close does it have to be until it uses melee
 ENT.NextRangeAttackTime = 5 -- How much time until it can use a range attack?
 ENT.HasFootStepSound = true
 ENT.SoundTbl_FootStep = {"npc/dog/dog_footstep_run1.wav","npc/dog/dog_footstep_run2.wav","npc/dog/dog_footstep_run3.wav","npc/dog/dog_footstep_run4.wav","npc/dog/dog_footstep_run5.wav","npc/dog/dog_footstep_run6.wav","npc/dog/dog_footstep_run7.wav","npc/dog/dog_footstep_run8.wav"}
-
-ENT.Horde_Immune_Status_All = true
 
 -- ====== Sounds ====== --
 ENT.SoundTbl_MeleeAttackSlowPlayer = {}
@@ -134,6 +132,7 @@ ENT.Immune_AcidPoisonRadiation = true -- Makes the SNPC not get damage from Acid
 local extraSounds = {"physics/concrete/concrete_block_impact_hard1.wav", "physics/concrete/concrete_block_impact_hard2.wav", "physics/concrete/concrete_block_impact_hard3.wav"}
 
 function ENT:CustomOnInitialize()
+	--self:SetCollisionBounds(Vector(25, 25, 90), Vector(-25, -25, 0))
 	self:SetColor(Color(0,150,255))
 end
 
@@ -145,6 +144,10 @@ end
 function ENT:DoRelationshipCheck(ent)
     if ent:IsPlayer() or ent:GetNWEntity("HordeOwner"):IsValid() then return false end
     return true
+end
+
+function ENT:CustomOnTakeDamage_BeforeDamage(dmginfo,hitgroup)
+dmginfo:ScaleDamage(0.7)
 end
 
 /*-----------------------------------------------
