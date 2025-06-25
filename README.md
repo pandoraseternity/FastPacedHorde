@@ -1,4 +1,4 @@
-# Horde Gamemode Fork for the Fast Paced Horde Server
+# FP Horde Gamemode Fork
 
 ## Full Console Command List
 Important: Put everything in `autoexec.cfg`!<br/>
