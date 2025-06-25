@@ -1,13 +1,8 @@
-# Horde Gamemode
-## Workshop Link
-https://steamcommunity.com/sharedfiles/filedetails/?id=2401598805
+# Horde Gamemode Fork for the Fast Paced Horde Server
+
 ## Full Console Command List
 Important: Put everything in `autoexec.cfg`!<br/>
-https://github.com/tpan496/Horde/wiki/Full-Console-Command-List
-
-## Creating Lua Config Addons
-Lua Configs are more modular and can be uploaded to workshop.<br/>
-https://github.com/tpan496/Horde/wiki/Creating-External-Lua-Config-Addons
+https://github.com/tpan496/Horde/wiki/Full-Console-Command-Lis
 
 ## Dedicated Server Instructions
 https://github.com/tpan496/Horde/wiki/Dedicated-Server-Instructions
@@ -19,5 +14,3 @@ Protected under BY-NC-SA 3.0
 3. For server owners, this means that you are free to generate revenue through addons that will not affect gameplay (e.g. cosmetics).
 4. In short, be reasonable and don't be a jerk. If you have any questions, contact me directly.
 
-## Translators
-Spanish: Archi, Bishy
