@@ -12,10 +12,10 @@ self.Entity:SetModel( "models/horde/spore/spore.mdl" )
 self.Entity:SetMoveType( MOVETYPE_VPHYSICS )
 self.Entity:SetSolid( SOLID_VPHYSICS )
 self.Entity:PhysicsInit( SOLID_VPHYSICS )
-self.Entity:SetCollisionGroup( COLLISION_GROUP_INTERACTIVE )
+self.Entity:SetCollisionGroup( COLLISION_GROUP_PLAYER_MOVEMENT )
 self.Entity:DrawShadow( false )
 self.ExplodeTimer = CurTime() + 2
-ParticleEffectAttach("vj_acid_idle", PATTACH_ABSORIGIN_FOLLOW, self, 0)
+ParticleEffectAttach("antlion_spit_trail", PATTACH_ABSORIGIN_FOLLOW, self, 0)
 end
 
 function ENT:Think()
