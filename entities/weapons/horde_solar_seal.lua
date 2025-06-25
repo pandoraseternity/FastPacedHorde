@@ -5,20 +5,21 @@ if CLIENT then
     SWEP.DrawWeaponInfoBox = false
     SWEP.BounceWeaponIcon = false
     killicon.Add( "horde_solar_seal", "vgui/hud/horde_solar_seal", Color( 255, 255, 255, 255 ) )
-    killicon.AddAlias( "projectile_horde_solar_orb", "horde_solar_seal" )
-    killicon.AddAlias( "horde_solar_orb_fire", "horde_solar_seal" )
+	killicon.Add( "projectile_horde_solar_projectile", "vgui/hud/horde_solar_seal", Color( 255, 255, 255, 255 ) )
 end
 SWEP.PrintName 		= "Solar Seal"
 
 SWEP.Author 		= "Gorlami"
 SWEP.Instructions 	= "Manipulates solar power."
 SWEP.Purpose 		= "Artificer Unique Weapon."
+SWEP.SpellWeapon = true
 
 SWEP.AimColor = Color(200,150,100,255)
 
 SWEP.ViewModelBoneMods = {
 	["ValveBiped.Grenade_body"] = { scale = Vector(0.009, 0.009, 0.009), pos = Vector(0, 0, 0), angle = Angle(0, 0, 0) }
 }
+SWEP.ClassOnly		= "Artificer"
 
 if CLIENT then
 SWEP.VElements = {

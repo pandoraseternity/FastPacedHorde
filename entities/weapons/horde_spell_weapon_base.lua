@@ -9,7 +9,7 @@ SWEP.Spawnable 		= true
 
 SWEP.ViewModelFOV 	= 45
 SWEP.ViewModel = "models/weapons/c_grenade.mdl"
-SWEP.WorldModel = "models/weapons/c_arms.mdl"
+SWEP.WorldModel = "models/weapons/w_grenade.mdl"
 
 SWEP.AutoSwitchTo 	= true
 SWEP.AutoSwitchFrom = true
@@ -30,6 +30,8 @@ SWEP.Weight = 20
 
 SWEP.DrawCrosshair = false
 SWEP.Category = "Spell - Horde"
+
+SWEP.SpellWeapon = true
 
 SWEP.DrawAmmo = true
 SWEP.Primary.MaxAmmo = 90
@@ -171,7 +173,7 @@ function SWEP:DrawHUD()
     cam.Start3D(self.Owner:EyePos(), self.Owner:EyeAngles())
     local size = 5
     render.SetMaterial(Material("Sprites/light_glow02_add_noz"))
-    render.DrawQuadEasy(tr.HitPos, (self.Owner:EyePos() - tr.HitPos):GetNormalized(), size, size, self.AimColor, 0)
+    render.DrawQuadEasy(tr.HitPos, (self.Owner:EyePos() - tr.HitPos):GetNormal(), size, size, self.AimColor, 0)
     cam.End3D()
     end
 end

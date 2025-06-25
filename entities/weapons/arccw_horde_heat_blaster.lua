@@ -8,7 +8,7 @@ if (CLIENT) then
 end
 SWEP.Base = "arccw_horde_gl_base"
 SWEP.Spawnable = true -- this obviously has to be set to true
-SWEP.Category = "Horde - Explosive" -- edit this if you like
+SWEP.Category = "ArcCW - Horde" -- edit this if you like
 SWEP.AdminOnly = false
 
 SWEP.PrintName = "Heat Blaster"
@@ -50,11 +50,10 @@ SWEP.Primary.ClipSize = 20 -- DefaultClip is automatically set.
 SWEP.ExtendedClipSize = 20
 SWEP.ReducedClipSize = 20
 
-SWEP.Recoil = 1
-SWEP.RecoilSide = 0
-SWEP.VisualRecoilMult = 0
-SWEP.RecoilRise = 0
-SWEP.RecoilPunch = 0
+SWEP.Recoil = 5
+SWEP.RecoilSide = 1
+SWEP.VisualRecoilMult = 1
+SWEP.RecoilRise = 1
 
 SWEP.Delay = 60 / 100 -- 60 / RPM.
 SWEP.Num = 1 -- number of shots per trigger pull.
@@ -70,8 +69,8 @@ SWEP.Firemodes = {
 }
 
 SWEP.AccuracyMOA = 10 -- accuracy in Minutes of Angle. There are 60 MOA in a degree.
-SWEP.HipDispersion = 10 -- inaccuracy added by hip firing.
-SWEP.MoveDispersion = 10
+SWEP.HipDispersion = 150 -- inaccuracy added by hip firing.
+SWEP.MoveDispersion = 250
 
 SWEP.Primary.Ammo = "SMG1_Grenade" -- what ammo type the gun uses
 

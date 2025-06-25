@@ -19,7 +19,6 @@ SWEP.Trivia_Country = "Combine"
 SWEP.Trivia_Year = 2010
 SWEP.Primary.MaxAmmo = 9
 SWEP.ForceDefaultAmmo = 0
-SWEP.Primary.Ammo = "Grenade"
 
 SWEP.Slot = 4
 
@@ -75,7 +74,7 @@ SWEP.Animations = {
     }
 }
 
-function SWEP:CustomInitialize()
+function SWEP:Initialize()
     if CLIENT then
         local vm = self.Owner:GetViewModel()
         vm:SetColor(Color(255, 0, 0))

@@ -14,6 +14,8 @@ SWEP.PrintName 		= "Pheropod"
 SWEP.Author 		= "Gorlami"
 SWEP.Instructions 	= "Incubates and cotnrols Antlions."
 SWEP.Purpose 		= "Hatcher Unique Weapon."
+SWEP.SpellWeapon = true
+SWEP.ClassOnly		= "Hatcher"
 
 SWEP.AdminSpawnable = false
 SWEP.Spawnable 		= true
@@ -26,8 +28,8 @@ SWEP.AutoSwitchTo 	= true
 SWEP.AutoSwitchFrom = true
 
 
-SWEP.Slot 			= 3
-SWEP.SlotPos        = 3
+SWEP.Slot 			= 2
+SWEP.SlotPos        = 2
 
 SWEP.Primary.DefaultClip	= 100
 SWEP.Primary.Automatic		= false
@@ -80,7 +82,6 @@ SWEP.SecondaryChargeSoundTimer = 0
 
 SWEP.EnergyRegenTimer = 0
 
-SWEP.UpgradeBypass = false
 
 local ShootSound = Sound( "weapons/bugbait/bugbait_squeeze3.wav" )
 
@@ -101,7 +102,7 @@ function SWEP:DrawHUD()
 	cam.Start3D(self.Owner:EyePos(), self.Owner:EyeAngles())
 	local size = 5
 	render.SetMaterial(Material("Sprites/light_glow02_add_noz"))
-	render.DrawQuadEasy(tr.HitPos, (self.Owner:EyePos() - tr.HitPos):GetNormalized(), size, size, Color(0,255,0,255), 0)
+	render.DrawQuadEasy(tr.HitPos, (self.Owner:EyePos() - tr.HitPos):GetNormal(), size, size, Color(0,255,0,255), 0)
 	cam.End3D()
     end
 end
@@ -112,14 +113,13 @@ function SWEP:Initialize()
 		if self.Owner and not self.Owner:IsValid() then return end
 		self.Owner:SetAmmo(100, "Thumper")
 	end)
-    
-    if CLIENT then return end
-	local id = self:EntIndex()
-    timer.Create("pheropod_ammo" .. id, 1, 0, function()
-		if self.Owner:GetActiveWeapon():GetClass() == "horde_pheropod" then return end
-        if not self.Owner:IsValid() then timer.Remove("pheropod_ammo" .. id) return end
-        if (self:Clip1() < self.Primary.MaxAmmo) then self:SetClip1(math.min(self.Primary.MaxAmmo, self:Clip1() + 1)) end
-	end)
+	
+	timer.Create( "pheroregen" .. self:EntIndex(), 0.3, 0, function() if IsValid(self) then
+		if IsValid(self) && self:Clip1() < 100 then
+			self:SetClip1(math.min(self.Primary.MaxAmmo, self:Clip1() + 1))
+		end
+	end end )
+	
 end
 
 function SWEP:PrimaryAttack()
@@ -161,50 +161,37 @@ function SWEP:Throw(level)
 end
 
 function SWEP:UpgradeReset()
-	if HORDE.player_drop_entities[self.Owner:SteamID()] then
-        for id, ent in pairs(HORDE.player_drop_entities[self.Owner:SteamID()]) do
-            if ent:IsValid() and ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
-                ent:Remove()
-            end
+	if not HORDE.player_drop_entities[self.Owner:SteamID()] then return end
+	for id, ent in pairs(HORDE.player_drop_entities[self.Owner:SteamID()]) do
+        if ent:IsValid() and ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
+            ent:UpgradeReset()
         end
-    end
-    self.UpgradeBypass = true
-    self:RaiseAntlion()
-    if self.Owner:Horde_GetPerk("hatcher_swarm") then
-        self.UpgradeBypass = true
-        self:RaiseAntlion()
     end
 end
 
 function SWEP:RaiseAntlion()
-	if not IsValid(self.Owner) then return end
-    if not self.Owner:Horde_GetPerk("hatcher_base") then return end
-    if not self.UpgradeBypass then
-        if self.Owner:Horde_GetPerk("hatcher_swarm") then
-            if HORDE:GetAntlionMinionsCount(self.Owner) > 1 then return end
-        else
-            if HORDE:GetAntlionMinionsCount(self.Owner) > 0 then return end
-        end
+	if IsValid(self.Owner) then
+		if not self.Owner:Horde_GetPerk("hatcher_base") then return end
+	end
+	if self.Owner:Horde_GetPerk("hatcher_swarm") then
+		if HORDE:GetAntlionMinionsCount(self.Owner) > 1 then return end
+	else
+		if HORDE:GetAntlionMinionsCount(self.Owner) > 0 then return end
+	end
 
-        if self.Weapon:Clip1() < 40 then return end
-        self:TakePrimaryAmmo(40)
-        self.Weapon:SendWeaponAnim(ACT_VM_SECONDARYATTACK)
-        self.SecondaryCharging = 1
-        self.SecondaryChargingTimer = CurTime() + 1
-    end
+	if self.Weapon:Clip1() < 40 then return end
+	self:TakePrimaryAmmo(40)
+	
+	self.Weapon:SendWeaponAnim(ACT_VM_SECONDARYATTACK)
+	self.SecondaryCharging = 1
+	self.SecondaryChargingTimer = CurTime() + 1
 	
 	local ply = self.Owner
 	local ent = ents.Create("npc_vj_horde_antlion")
 	local pos = ply:GetPos()
 	local dir = (ply:GetEyeTrace().HitPos - pos)
-	
-    if self.UpgradeBypass then
-        ent.evolutionmaximum = true
-        self.UpgradeBypass = false
-    end
-    
-    dir:Normalize()
-	local drop_pos = pos + dir * 50 + Vector(0, 0, 15)
+	dir:Normalize()
+	local drop_pos = pos + dir * 50
 	ent:SetPos(drop_pos)
 	ent:SetOwner(ply)
 	ply:Horde_AddDropEntity(ent:GetClass(), ent)
@@ -214,7 +201,6 @@ function SWEP:RaiseAntlion()
 	ent:Spawn()
 
 	timer.Simple(0.1, function ()
-        if not ent:IsValid() then return end
 		ent:AddRelationship("player D_LI 99")
 		ent:AddRelationship("ally D_LI 99")
 		if HORDE.items["npc_vj_horde_vortigaunt"] then
@@ -236,7 +222,7 @@ function SWEP:RaiseAntlion()
 		ply:Horde_SetMinionCount(ply:Horde_GetMinionCount() + 1)
 		ent:CallOnRemove("Horde_EntityRemoved", function()
 			if ent:IsValid() and ply:IsValid() then
-				--timer.Remove("Horde_MinionCollision" .. ent:GetCreationID())
+				timer.Remove("Horde_MinionCollision" .. ent:GetCreationID())
 				ply:Horde_RemoveDropEntity(ent:GetClass(), ent:GetCreationID())
 				ply:Horde_SyncEconomy()
 				ply:Horde_SetMinionCount(ply:Horde_GetMinionCount() - 1)
@@ -245,15 +231,13 @@ function SWEP:RaiseAntlion()
 
 		ent.VJFriendly = false
 	end)
-    
-	--ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
-    --[[
+
+	ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 	local id = ent:GetCreationID()
 	timer.Create("Horde_MinionCollision" .. id, 1, 0, function ()
 		if not ent:IsValid() then timer.Remove("Horde_MinionCollision" .. id) return end
 		ent:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 	end)
-    ]]
 end
 
 function SWEP:SecondaryAttack()
@@ -269,12 +253,28 @@ end
 function SWEP:Come()
 	if not HORDE.player_drop_entities[self.Owner:SteamID()] then return end
 	for id, ent in pairs(HORDE.player_drop_entities[self.Owner:SteamID()]) do
-		if ent:IsValid() and ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
+		if ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
 			ent:SetLastPosition(self.Owner:GetPos())
 			ent:SetSchedule(SCHED_FORCED_GO_RUN)
 		end
 	end
 end
+
+EnergyRegenTimer2 = 0
+/*local function baitregen()
+
+for _, ply in ipairs( player.GetHumans() ) do 
+local sex2 = ply:GetWeapon("horde_pheropod") 
+
+if IsValid(sex2) && sex2:Clip1() < 90 && CurTime() > EnergyRegenTimer2 then
+	EnergyRegenTimer2 = CurTime() + 0.3
+	sex2:SetClip1(math.min(sex2.Primary.MaxAmmo, sex2:Clip1() + 1))
+end
+
+end
+
+end*/
+
 
 function SWEP:Think()
 	if self.Charging == 1 and !self.Owner:KeyDown( IN_ATTACK ) then
@@ -319,10 +319,6 @@ function SWEP:Think()
 		self.EnergyRegenTimer = CurTime() + 0.25
 		self:SetClip1(math.min(self.Primary.MaxAmmo, self:Clip1() + 1))
 	end
-end
-
-function SWEP:OnRemove()
-    timer.Stop("pheropod_ammo" .. self:EntIndex())
 end
 
 function SWEP:OnDrop()

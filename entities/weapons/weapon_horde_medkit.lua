@@ -17,13 +17,12 @@ SWEP.UseHands = true
 
 SWEP.Primary.ClipSize = 100
 SWEP.Primary.DefaultClip = 100
-SWEP.Primary.Automatic = true
+SWEP.Primary.Automatic = false
 SWEP.Primary.Ammo = "none"
-SWEP.Primary.MaxAmmo = 0
 
 SWEP.Secondary.ClipSize = -1
 SWEP.Secondary.DefaultClip = -1
-SWEP.Secondary.Automatic = true
+SWEP.Secondary.Automatic = false
 SWEP.Secondary.Ammo = "none"
 
 SWEP.HealAmount = 20 -- Maximum heal amount per use
@@ -31,7 +30,6 @@ SWEP.MaxAmmo = 100 -- Maxumum ammo
 
 local HealSound = Sound( "HealthKit.Touch" )
 local DenySound = Sound( "WallHealth.Deny" )
-
 function SWEP:Initialize()
 
 	self:SetHoldType( "slam" )
@@ -44,64 +42,56 @@ function SWEP:Initialize()
 
 end
 
+
 function SWEP:PrimaryAttack()
 
 	if ( CLIENT ) then return end
 
-	if ( self.Owner:IsPlayer() ) then
-		self.Owner:LagCompensation( true )
+	if ( self:GetOwner():IsPlayer() ) then
+		self:GetOwner():LagCompensation( true )
 	end
 
-	local tr = util.TraceHull( {
-		start = self.Owner:GetShootPos(),
-		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * 100,
-		filter = self.Owner
+	local tr = util.TraceLine( {
+		start = self:GetOwner():GetShootPos(),
+		endpos = self:GetOwner():GetShootPos() + self:GetOwner():GetAimVector() * 100,
+		filter = self:GetOwner()
 	} )
 
-	if ( self.Owner:IsPlayer() ) then
-		self.Owner:LagCompensation( false )
+	if ( self:GetOwner():IsPlayer() ) then
+		self:GetOwner():LagCompensation( false )
 	end
 
 	local ent = tr.Entity
 
-	local ply = self.Owner
-	local overheal = 1.2
+	if not ent:IsValid() then self:HealFail(ent) return end
 
-	if ply:Horde_GetPerk("medic_painkillers") then
-		overheal = overheal
-	else
-		overheal = 1
+	local maxhealth,health = ent:GetMaxHealth(),ent:Health()
+
+	if self:GetOwner():Horde_GetPerk("medic_painkillers") then
+		maxhealth = maxhealth*1.20
 	end
 
-	if ( IsValid( ent ) && ( ent:IsPlayer() or ent:GetClass() == "npc_vj_horde_antlion") ) then
-		local need = math.min(ent:GetMaxHealth() * overheal - ent:Health(), (ent:GetMaxHealth() * 0.2)) or self.HealAmount
-		local medkit_heal_coeff = ent:GetMaxHealth() / math.max(1, self.Primary.ClipSize)
-		local medkit_charge_coeff = math.min(1, self:Clip1() / (need / medkit_heal_coeff))
+	if health >= maxhealth then self:HealFail(ent) return end
 
-		if ent:Health() >= ent:GetMaxHealth() * (overheal) then
-			--ent:EmitSound( DenySound )
-			--self:SetNextPrimaryFire( CurTime() + 1 )
-			return
-		end
+	local need = self.HealAmount
+	
+	if need > 0 then
+		need = math.min(maxhealth - health,need)
+	end
 
-		self:TakePrimaryAmmo( need / medkit_heal_coeff * medkit_charge_coeff )
+	if ( self:Clip1() >= need && need > 0 && ( ent:IsPlayer() or ent:GetClass() == "npc_vj_horde_antlion")) then
 
-		local healinfo = HealInfo:New({amount = need * medkit_charge_coeff, healer=self.Owner})
+		self:TakePrimaryAmmo( need )
+
+        local healinfo = HealInfo:New({amount=need, healer=self:GetOwner()})
 		if ent:IsPlayer() then
 			HORDE:OnPlayerHeal(ent, healinfo)
 		else
-			HORDE:OnAntlionHeal(ent, healinfo)
+            HORDE:OnAntlionHeal(ent, healinfo)
 		end
-		ent:EmitSound( HealSound )
-
-		self:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
-
-		self:SetNextPrimaryFire( CurTime() + self:SequenceDuration() + 0.5 )
-		self.Owner:SetAnimation( PLAYER_ATTACK1 )
-
-		-- Even though the viewmodel has looping IDLE anim at all times, we need this to make fire animation work in multiplayer
-		timer.Create( "weapon_idle" .. self:EntIndex(), self:SequenceDuration(), 1, function() if ( IsValid( self ) ) then self:SendWeaponAnim( ACT_VM_IDLE ) end end )
-
+		self:HealSuccess(ent)
+	else
+		self:HealFail(ent)
 	end
 
 end
@@ -110,44 +100,59 @@ function SWEP:SecondaryAttack()
 
 	if ( CLIENT ) then return end
 
-	local ent = self.Owner
-	if not IsValid(ent) then return end
+	local ent = self:GetOwner()
 
-	local overheal = 1.2
-	if ent:Horde_GetPerk("medic_painkillers") then
-		overheal = overheal
-	else
-		overheal = 1
+	local maxhealth,health = ent:GetMaxHealth(),ent:Health()
+
+	if self:GetOwner():Horde_GetPerk("medic_painkillers") then
+		maxhealth = maxhealth*1.20
 	end
 
-	local need = math.min(ent:GetMaxHealth() * overheal - ent:Health(), (ent:GetMaxHealth() * 0.2)) or self.HealAmount
-	local medkit_heal_coeff = ent:GetMaxHealth() / math.max(1, self.Primary.ClipSize)
-	local medkit_charge_coeff = math.min(1, self:Clip1() / (need / medkit_heal_coeff))
+	if health >= maxhealth then self:HealFail(ent) return end
 
-	if ent:Health() >= ent:GetMaxHealth() * (overheal) then
-		--ent:EmitSound(DenySound)
-		--self:SetNextSecondaryFire(CurTime() + 1)
-		return
+	local need = self.HealAmount
+
+	if need > 0 then
+	need = math.min(maxhealth - health,need)
 	end
 
-	self:TakePrimaryAmmo( need / medkit_heal_coeff * medkit_charge_coeff )
+	if ( IsValid( ent ) && self:Clip1() >= need) then
 
-	local healinfo = HealInfo:New({amount = need * medkit_charge_coeff, healer=self.Owner})
-	if ent:IsPlayer() then
+		self:TakePrimaryAmmo( need )
+
+        local healinfo = HealInfo:New({amount=need, healer=self:GetOwner()})
+
 		HORDE:OnPlayerHeal(ent, healinfo)
-	elseif ent:GetClass() == "npc_vj_horde_antlion" then
-		HORDE:OnAntlionHeal(ent, healinfo)
+
+		self:HealSuccess(ent)
+	else
+		self:HealFail(ent)
 	end
 
-	ent:EmitSound( HealSound )
+end
+
+function SWEP:HealSuccess(ent)
+
+	self:GetOwner():EmitSound( HealSound )
 
 	self:SendWeaponAnim( ACT_VM_PRIMARYATTACK )
-
-	self:SetNextSecondaryFire( CurTime() + self:SequenceDuration() + 0.5 )
-	self.Owner:SetAnimation( PLAYER_ATTACK1 )
-
+	local endtime = CurTime() + self:SequenceDuration()
+	endtime = endtime + 0.5
+	self:SetNextPrimaryFire( endtime )
+	self:SetNextSecondaryFire( endtime )
+	self:GetOwner():SetAnimation( PLAYER_ATTACK1 )
+	
 	timer.Create( "weapon_idle" .. self:EntIndex(), self:SequenceDuration(), 1, function() if ( IsValid( self ) ) then self:SendWeaponAnim( ACT_VM_IDLE ) end end )
 
+end
+
+function SWEP:HealFail(ent)
+
+	self:GetOwner():EmitSound( DenySound )
+
+	local endtime = CurTime() + 1
+	self:SetNextPrimaryFire( endtime )
+	self:SetNextSecondaryFire( endtime )
 end
 
 function SWEP:OnRemove()
@@ -173,8 +178,4 @@ function SWEP:CustomAmmoDisplay()
 
 	return self.AmmoDisplay
 
-end
-
-function SWEP:OnDrop()
-	self:Remove()
 end

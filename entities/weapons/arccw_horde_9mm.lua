@@ -28,8 +28,8 @@ SWEP.MirrorVMWM = false
 SWEP.WorldModel = "models/weapons/w_pistol.mdl"
 SWEP.ViewModelFOV = 65
 
-SWEP.Damage = 8
-SWEP.DamageMin = 5
+SWEP.Damage = 15
+SWEP.DamageMin = 12
 SWEP.RangeMin = 12.5
 SWEP.Range = 31.25
 SWEP.Penetration = 2
@@ -137,6 +137,7 @@ SWEP.Animations = {
     ["draw"] = {
         Source = "draw",
         FrameRate = 30,
+        Time = 9/30,
     },
     ["fire"] = {
         Source = {"fire1", "fire2", "fire3"},

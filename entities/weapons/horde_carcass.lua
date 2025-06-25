@@ -11,6 +11,15 @@ SWEP.Purpose = ""
 SWEP.Slot = 0
 SWEP.SlotPos = 4
 
+SWEP.WeapOnly = {
+["weapon_horde_medkit"] = true,
+["tacrp_medkit"] = true,
+["weapon_armorkit"] = true,
+}
+
+SWEP.SpellWeapon = true
+SWEP.ClassOnly		= "Carcass"
+
 SWEP.Spawnable = true
 
 SWEP.ViewModel = Model( "models/weapons/c_arms.mdl" )
@@ -30,8 +39,8 @@ SWEP.Secondary.Ammo = "none"
 
 SWEP.DrawAmmo = false
 
-SWEP.HitDistance = 90
-SWEP.Horde_Use_Locational_DMG = "melee"
+SWEP.HitDistance = 150
+
 SWEP.Charging = 0
 SWEP.ChargingTimer = 0
 
@@ -109,7 +118,7 @@ function SWEP:Punch(charged)
 	self:EmitSound( SwingSound )
 
 	self:UpdateNextIdle()
-	self:SetNextMeleeAttack( CurTime() + 0.1 )
+	self:SetNextMeleeAttack( CurTime() + 0 )
 
 	self:SetNextPrimaryFire( CurTime() + self.Delay )
 end
@@ -119,7 +128,7 @@ local phys_pushscale = GetConVar( "phys_pushscale" )
 function SWEP:DealDamage()
 	if SERVER then
 		local level = self.Owner:Horde_GetUpgrade("horde_carcass")
-		self.BaseDamage = 25 + 8 * level
+		self.BaseDamage = 40 + 16 * level
 	end
 
 	local anim = self:GetSequenceName(self.Owner:GetViewModel():GetSequence())
@@ -167,7 +176,7 @@ function SWEP:DealDamage()
             Damage = self.BaseDamage,
             Tracer = -1,
 			HullSize = 10,
-            Distance = self.HitDistance,
+            Distance = 200,
             Dir = tr.HitPos - self:GetOwner():GetShootPos(),
             Src = self:GetOwner():GetShootPos(),
             Callback = function(att, trb, dmginfo)
@@ -180,13 +189,15 @@ function SWEP:DealDamage()
 					dmginfo:ScaleDamage(2)
 				end
 				if ply:Horde_GetPerk("carcass_reinforced_arms") then
-					bonus.more = bonus.more * math.max(1, ply:GetVelocity():Length() / 180)
+					bonus.more = bonus.more * math.max(1, ply:GetVelocity():Length() / 300)
+					if bonus.more > 5 then
+						ply:EmitSound("bootleg_ultrakill/HammerExplosion3.wav")
+					end
 				end
 				if ply.Horde_Bio_Thruster_Stack and ply.Horde_Bio_Thruster_Stack > 0 then
 					bonus.increase = bonus.increase + ply.Horde_Bio_Thruster_Stack * 0.1
 				end
 
-                local scale_aoe_dmg = self.BaseDamage * (1 + bonus.increase) * bonus.more
 				dmginfo:ScaleDamage((1 + bonus.increase) * bonus.more)
 				dmginfo:SetDamageType(DMG_CLUB)
 				if ( anim == "fists_left" ) then
@@ -205,45 +216,10 @@ function SWEP:DealDamage()
 
 					if ply:Horde_GetPerk("carcass_reinforced_arms") then
 						local vmult = math.max(1, ply:GetVelocity():Length() / 180)
-						--util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 140 * vmult)
+						util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 200 * vmult)
 						dmginfo:SetDamageForce(self.Owner:GetUp() * 5158 * scale * vmult + self.Owner:GetForward() * 10012 * scale * vmult)
-                        
-                        tr.Entity.donthitmeagain = true
-                        HORDE.RadiusDamageExtra({
-                            attacker = attacker,
-                            inflictor = self,
-                            radius = 140 * vmult,
-                            falloffradius = 50,
-                            falloff_cap = 0,
-                            damage = scale_aoe_dmg,
-                            basedamagemul = 0,
-                            fallofftype = "linear",
-                            falloff_speed = 1,
-                            ignoreattacker = true,
-                            origin = tr.Entity:GetPos(),
-                            damagetype = DMG_CLUB,
-                            damagecustomtype = HORDE.DMG_SPLASH,
-                            --antishotgun = true,
-                        })
 					else
-						--util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 140)
-                        tr.Entity.donthitmeagain = true
-                        HORDE.RadiusDamageExtra({
-                            attacker = attacker,
-                            inflictor = self,
-                            radius = 140,
-                            falloffradius = 50,
-                            falloff_cap = 0,
-                            damage = scale_aoe_dmg,
-                            basedamagemul = 0,
-                            fallofftype = "linear",
-                            falloff_speed = 1,
-                            ignoreattacker = true,
-                            origin = tr.Entity:GetPos(),
-                            damagetype = DMG_CLUB,
-                            damagecustomtype = HORDE.DMG_SPLASH,
-                            --antishotgun = true,
-                        })
+						util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 225)
 					end
 				end
 
@@ -294,17 +270,11 @@ function SWEP:TwinHeart()
 	if self.LastToggle > CurTime() then return end
 	self.LastToggle = CurTime() + self.ToggleInterval
 	local ply = self.Owner
-	if ply.Horde_TwinHeartStack <= 0 or ply:Health() >= ply:GetMaxHealth() then
+	if ply.Horde_TwinHeartStack <= 0 then
 		ply.TwinHeartToggleOn = false
 		return
 	end
-    --[[
-    if ply.TwinHeartToggleOn then
-        ply:EmitSound("items/suitchargeno1.wav")
-    else
-        ply:EmitSound("buttons/combine_button5.wav")
-    end
-    ]]
+
 	ply.TwinHeartToggleOn = !ply.TwinHeartToggleOn
 end
 
@@ -392,20 +362,11 @@ function SWEP:StartAttack()
 	if SERVER and ply:Horde_GetPerk("carcass_bio_thruster") then
 		if not ply:IsValid() then return end
 		if self.LastThrust > CurTime() then return end
-        
-        if (ply:Health() <= (ply:GetMaxHealth() * 0.05 * math.max(1, ply.Horde_Bio_Thruster_Stack))) then
-            self.LastThrust = CurTime() + self.ThrustInterval
-            ply:EmitSound( sndTooFar )
-        return end
-        
 		self.LastThrust = CurTime() + self.ThrustInterval
 		local id = ply:SteamID()
 		timer.Remove("Horde_BioThrusterDegen" .. id)
 		timer.Create("Horde_BioThrusterDegen" .. id, 3, 0, function ()
-            if !ply:IsValid() then
-                timer.Remove("Horde_BioThrusterDegen" .. id)
-                return
-            end
+			if !ply:IsValid() then timer.Remove("Horde_BioThrusterDegen" .. id) end
             if !ply:Alive() then return end
             ply.Horde_Bio_Thruster_Stack = math.max(0, ply.Horde_Bio_Thruster_Stack - 1)
 			ply:Horde_SyncStatus(HORDE.Status_Bio_Thruster, ply.Horde_Bio_Thruster_Stack)
@@ -425,7 +386,11 @@ function SWEP:StartAttack()
 		local vel = dir * force
 		ply:SetLocalVelocity(vel)
 		
-		ply:SetHealth(math.max(1,ply:Health() - ply:GetMaxHealth() * 0.05 * ply.Horde_Bio_Thruster_Stack))
+		--ply:SetHealth(ply:Health() - ply:GetMaxHealth() * 0.01 * ply.Horde_Bio_Thruster_Stack)
+		ply:SetHealth(ply:Health() - (4 * ply.Horde_Bio_Thruster_Stack))
+		if ply:Health() <= 0 then
+			ply:Kill()
+		end
 		ply:EmitSound("horde/player/carcass/biothruster" .. math.random(1,2) .. ".ogg")
 		ply:EmitSound("horde/player/carcass/pain.ogg")
 		return
@@ -448,7 +413,7 @@ function SWEP:StartAttack()
 	local distance = math.sqrt(x + y + z);
 	
 	-- Only latches if distance is less than distance CVAR, or CVAR negative
-	local distanceCvar = 1000
+	local distanceCvar = 2500
 	inRange = false
 	if distanceCvar < 0 or distance <= distanceCvar then
 		inRange = true
@@ -471,7 +436,7 @@ function SWEP:StartAttack()
 		end
 		
 		self:DoTrace()
-		self.speed = 10000 -- Rope latch speed. Was 3000.
+		self.speed = 20000 -- Rope latch speed. Was 3000.
 		self.startTime = CurTime()
 		self.endTime = CurTime() + self.speed
 		self.dtt = -1
@@ -482,25 +447,15 @@ function SWEP:StartAttack()
 			else
 				self.Horde_Intestine:GetTable():SetEndPos( self.Tr.HitPos )
 			end
-            
-            if self.Owner:Horde_GetPerk("carcass_grappendix") and self.Owner:KeyDown( IN_BACK ) and 
-            HORDE:IsEnemy(self.Tr.Entity) and not self.Tr.Entity:Horde_IsElite() and not self.Tr.Entity:Horde_GetBossProperties() then
-                pull = true
-            else
-                pull = false
-            end
+			
 		end
 		
 		self:UpdateAttack()
 		
-        --hacky fix for the grappendix sound
-        if self:GetOwner():Health() <= 1 then
-            self:GetOwner():EmitSound( sndTooFar )
-            return
-        end
+		self.Weapon:EmitSound( sndPowerDown )
 	else
 		-- Play a sound
-		self:GetOwner():EmitSound( sndTooFar )
+		self.Weapon:EmitSound( sndTooFar )
 	end
 end
 
@@ -514,8 +469,7 @@ function SWEP:UpdateAttack()
 	if (!intestine_endpos) then
 		intestine_endpos = self.Tr.HitPos
 		if self.Tr.Entity:IsNPC() then
-			if not self.Tr.Entity:IsValid() then return end
-            intestine_endpos = intestine_endpos + self.Tr.Entity:OBBCenter()
+			intestine_endpos = intestine_endpos + self.Tr.Entity:OBBCenter()
 		end
 		if pull == true then
 			target_pos = self.Owner:GetPos() + self.Owner:OBBCenter()
@@ -545,8 +499,7 @@ function SWEP:UpdateAttack()
 	
 	local vVel, Distance
 	if pull == true then
-		if not self.Tr.Entity:IsValid() then return end
-        vVel = ((self.Owner:GetPos() + self.Owner:OBBCenter()) - self.Tr.Entity:GetPos())
+		vVel = ((self.Owner:GetPos() + self.Owner:OBBCenter()) - self.Tr.Entity:GetPos())
 		Distance = self.Tr.Entity:GetPos():Distance(self.Owner:GetPos()+ self.Owner:OBBCenter())
 	else
 		vVel = (intestine_endpos - self.Owner:GetPos())
@@ -558,24 +511,23 @@ function SWEP:UpdateAttack()
 		self.dtt = (et - CurTime()) / (et - self.startTime)
 	end
 	if(self.dtt < 0) then
-		self:GetOwner():EmitSound( sndPowerUp )
+		self.Weapon:EmitSound( sndPowerUp )
 		self.dtt = 0
 	end
 	
 	if(self.dtt == 0) then
-		local zVel = self.Owner:GetVelocity().z
-		vVel = vVel:GetNormalized()*(math.Clamp(Distance,0,7))
+		local zVel = self.Owner:GetVelocity().y
+		vVel = vVel:GetNormalized()*(math.Clamp(Distance,0,11))
 		if( SERVER ) then
 		local gravity = GetConVarNumber("sv_gravity")
-		vVel:Add(Vector(0,0,(gravity/100)*1.5)) -- Player speed. DO NOT MESS WITH THIS VALUE!
+		--vVel:Add(Vector(0,0,(gravity/100)*1.5)) -- Player speed. DO NOT MESS WITH THIS VALUE!
 		if(zVel < 0) then
-			vVel:Sub(Vector(0,0,zVel/100))
+			--vVel:Sub(Vector(0,0,zVel/100))
 		end
 		if pull == true then
-			if not self.Tr.Entity:IsValid() then return end
-            self.Tr.Entity:SetVelocity((vVel + Vector(0,0,-7)) * 4)
+			self.Tr.Entity:SetVelocity(vVel)
 		else
-			self.Owner:SetVelocity(vVel * 1.5)
+			self.Owner:SetVelocity(vVel * 3)
 		end
 		end
 	end
@@ -583,11 +535,9 @@ function SWEP:UpdateAttack()
 	intestine_endpos = nil
 
 	if self.LastDrain <= CurTime() then
-        self.Owner:SetHealth(math.max(1,self.Owner:Health() - self.Owner:GetMaxHealth() * 0.01))
-		if self.Owner:Health() <= 1 then
-            self:EndAttack( true )
-            --hacky workaround to make the weapon think it couldn't successfully find a trace to achieve the effect of forcibly stopping a grapple
-			inRange = false
+		self.Owner:SetHealth(self.Owner:Health() - 3)
+		if self.Owner:Health() <= 0 then
+			self.Owner:Kill()
 			return
 		end
 		self.LastDrain = CurTime() + self.DrainInterval
@@ -612,6 +562,7 @@ function SWEP:Think()
 	local vm = self.Owner:GetViewModel()
 	local curtime = CurTime()
 	local idletime = self:GetNextIdle()
+	local ply = self:GetOwner()
 
 	if ( idletime > 0 && CurTime() > idletime ) then
 
@@ -630,26 +581,22 @@ function SWEP:Think()
 		self:SetNextMeleeAttack( 0 )
 
 	end
-    
-    local hit_speed = math.Round(self:GetOwner():GetVelocity():LengthSqr() * 0.00007 )
-    local tr = util.TraceHull( {
-		start = self.Owner:GetShootPos(),
-		endpos = self.Owner:GetShootPos() + self.Owner:GetAimVector() * (self.HitDistance + hit_speed),
-		filter = self.Owner,
-		mask = MASK_SHOT_HULL
-	})
-    local ent = tr.Entity
 
-	if SERVER and self.Charging == 1 and (!self.Owner:KeyDown( IN_ATTACK ) or (self.Owner:KeyDown( IN_ATTACK ) and HORDE:IsEnemy(ent))) then
+	if SERVER and self.Charging == 1 and !self.Owner:KeyDown( IN_ATTACK ) then
         self:SetNextPrimaryFire( CurTime() + self.Delay )
-        
-        if self.ChargingTimer <= CurTime() then
-            self:Punch(1)
-            self.Charging = 0
-        elseif !self.Owner:KeyDown( IN_ATTACK ) then
-            self:Punch(0)
-            self.Charging = 0
-        end
+        self.Charging = 0
+
+		if self.ChargingTimer <= CurTime() then
+			local effData = EffectData()
+			effData:SetOrigin(ply:GetShootPos() + (ply:GetForward()*45))
+			effData:SetRadius(200)
+			effData:SetNormal( ply:GetShootPos() )
+			effData:SetAngles(ply:LocalEyeAngles())
+			util.Effect("seismic_wave", effData)
+			self:Punch(1)
+		else
+			self:Punch(0)
+		end
     end
 	
 	if SERVER and self.Charging == 1 then
@@ -683,23 +630,20 @@ function SWEP:Think()
 
 	if SERVER then
 		local ply = self.Owner
-		if ply.TwinHeartToggleOn and self.LastTransfer <= CurTime() and not ply:Horde_HasDebuff(HORDE.Status_Decay) then
+		if ply.TwinHeartToggleOn and self.LastTransfer <= CurTime() then
 			if ply.TwinHeartToggleOn == true then
-				if ply.Horde_TwinHeartStack <= 0 or ply:Horde_HasDebuff(HORDE.Status_Decay) or ply:Health() >= ply:GetMaxHealth() then
+				if ply.Horde_TwinHeartStack <= 0 then
 					ply.TwinHeartToggleOn = false
-                    --ply:EmitSound("items/suitchargeno1.wav")
 					return
 				end
-				
-                if ply:Health() < ply:GetMaxHealth() then
-                    ply.Horde_TwinHeartStack = math.max(0, ply.Horde_TwinHeartStack - 1)
-                    ply:Horde_SyncStatus(HORDE.Status_Twin_Heart, ply.Horde_TwinHeartStack)
-                    local id = ply:SteamID()
-                    --timer.Remove("Horde_TwinHeartStacking" .. id)
-                    HORDE:SelfHeal(ply, ply:GetMaxHealth() * 0.01)
-                    self.LastTransfer = CurTime() + self.TransferInterval
-                    sound.Play("items/medshot4.wav", ply:GetPos())
-                end
+				sound.Play("items/medshot4.wav", ply:GetPos())
+				ply.Horde_TwinHeartStack = math.max(0, ply.Horde_TwinHeartStack - 1)
+				ply:Horde_SyncStatus(HORDE.Status_Twin_Heart, ply.Horde_TwinHeartStack)
+				local healinfo = HealInfo:New({amount = ply:GetMaxHealth() * 0.01, healer=self.Owner})
+				local id = ply:SteamID()
+				--timer.Remove("Horde_TwinHeartStacking" .. id)
+				HORDE:OnPlayerHeal(ply, healinfo)
+				self.LastTransfer = CurTime() + self.TransferInterval
 			end
 		end
 	end

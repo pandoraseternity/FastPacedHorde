@@ -47,7 +47,7 @@ SWEP.Primary.Sound = Sound("horde/weapons/sticky_launcher/stickybomblauncher_sho
 SWEP.Primary.ClipSize = 8
 SWEP.Primary.DefaultClip = 32
 SWEP.Primary.Automatic = true
-SWEP.Primary.Ammo = "SMG1_Grenade"
+SWEP.Primary.Ammo = "Grenade"
 SWEP.Primary.TakeAmmo = 1
 SWEP.Primary.Delay = 0.6
 SWEP.Primary.Force = 800
@@ -84,7 +84,7 @@ function SWEP:DrawHUD()
     end
     surface.SetTexture( surface.GetTextureID( "vgui/hud/gl_crosshair" ) )
     surface.SetDrawColor( 255, 255, 255, 255 )
-    surface.DrawTexturedRect( x - ScrW() / 40, y - ScrW() / 40, ScrW() / 20, ScrW() / 20 )
+    surface.DrawTexturedRect( x - ScrW() / 40, y - ScrW() / 40, ScrW() / 25, ScrW() / 25 )
     end
 end
 
@@ -97,8 +97,7 @@ function SWEP:Deploy()
     self.ReloadingTimer = CurTime()
     self.Idle = 0
     self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-    self.Recoil = 0
-    self.RecoilTimer = CurTime()
+
     self.Owner:SetWalkSpeed( self.WalkSpeed )
     self.Owner:SetRunSpeed( self.RunSpeed )
     return true
@@ -109,8 +108,7 @@ function SWEP:Holster()
     self.ReloadingTimer = CurTime()
     self.Idle = 0
     self.IdleTimer = CurTime()
-    self.Recoil = 0
-    self.RecoilTimer = CurTime()
+
     if self.Owner ~= self.StickyOwner then
         if self.Stickies then
             for _, sticky in pairs(self.Stickies) do
@@ -125,7 +123,7 @@ end
 
 function SWEP:PrimaryAttack()
     if self.Reloading == 1 then
-        self.Reloading = 2
+        self.Reloading = 0
     else
         if !( self.Reloading == 0 ) then return end
         if self.Weapon:Clip1() <= 0 and self.Weapon:Ammo1() <= 0 then
@@ -176,9 +174,7 @@ function SWEP:PrimaryAttack()
         self:SetNextSecondaryFire(CurTime() + self.Primary.Delay)
         self.Idle = 0
         self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-        self.Recoil = 1
-        self.RecoilTimer = CurTime() + 0.2
-        self.Owner:SetEyeAngles(self.Owner:EyeAngles() + Angle(-3, 0, 0))
+
     end
 end
 
@@ -210,12 +206,7 @@ end
 
 function SWEP:Think()
     if CLIENT then return end
-    if self.Recoil == 1 and self.RecoilTimer <= CurTime() then
-        self.Recoil = 0
-    end
-    if self.Recoil == 1 then
-        self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( 0.23, 0, 0 ) )
-    end
+
     if self.Reloading == 1 and self.ReloadingTimer <= CurTime() and self.Weapon:Clip1() < self.Primary.ClipSize and self.Weapon:Ammo1() > 0 then
         self.Owner:EmitSound("horde/weapons/sticky_launcher/stickybomblauncher_reload.wav")
         self.Weapon:SendWeaponAnim( ACT_VM_RELOAD )

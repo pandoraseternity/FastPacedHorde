@@ -169,16 +169,6 @@ end
     self.RegenerationTimer = CurTime() + 0.5
     self.Idle = 0
     self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-    if ( CLIENT || game.SinglePlayer() ) and IsFirstTimePredicted() then
-        self.Recoil = math.random( 1, 2 )
-        self.RecoilTimer = CurTime() + self.Secondary.Delay
-        if self.Recoil == 1 then
-            self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( -2.5, 0, 0 ) )
-        end
-        if self.Recoil == 2 then
-            self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( 2.5, 0, 0 ) )
-        end
-    end
 end
 
 function SWEP:SecondaryAttack()
@@ -218,36 +208,13 @@ function SWEP:SecondaryAttack()
     self.RegenerationTimer = CurTime() + 0.5
     self.Idle = 0
     self.IdleTimer = CurTime() + self.Owner:GetViewModel():SequenceDuration()
-    if ( CLIENT || game.SinglePlayer() ) and IsFirstTimePredicted() then
-        self.Recoil = math.random( 1, 2 )
-        self.RecoilTimer = CurTime() + self.Secondary.Delay
-        if self.Recoil == 1 then
-            self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( -2.5, 0, 0 ) )
-        end
-        if self.Recoil == 2 then
-            self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( 2.5, 0, 0 ) )
-        end
-    end
 end
 
 function SWEP:Reload()
 end
 
 function SWEP:Think()
-if ( CLIENT || game.SinglePlayer() ) and IsFirstTimePredicted() then
-    if self.Recoil == 1 and self.RecoilTimer <= CurTime() then
-        self.Recoil = 0
-    end
-    if self.Recoil == 2 and self.RecoilTimer <= CurTime() then
-        self.Recoil = 0
-    end
-    if self.Recoil == 1 then
-        self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( 0.415, 0, 0 ) )
-    end
-    if self.Recoil == 2 then
-        self.Owner:SetEyeAngles( self.Owner:EyeAngles() + Angle( -0.415, 0, 0 ) )
-    end
-    end
+
     if self.RegenerationTimer <= CurTime() and self.Weapon:Ammo1() < self.Primary.MaxAmmo then
         self.Owner:SetAmmo( self.Weapon:Ammo1() + 1, self.Primary.Ammo )
         self.RegenerationTimer = CurTime() + 0.5
