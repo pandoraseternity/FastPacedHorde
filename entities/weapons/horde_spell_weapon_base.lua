@@ -9,7 +9,7 @@ SWEP.Spawnable 		= true
 
 SWEP.ViewModelFOV 	= 45
 SWEP.ViewModel = "models/weapons/c_grenade.mdl"
-SWEP.WorldModel = "models/weapons/w_grenade.mdl"
+SWEP.WorldModel = "models/weapons/c_arms.mdl"
 
 SWEP.AutoSwitchTo 	= true
 SWEP.AutoSwitchFrom = true
