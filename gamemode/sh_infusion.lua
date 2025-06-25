@@ -82,41 +82,39 @@ HORDE.Infusion_Colors = {
 HORDE.Infusion_Description = {
 [HORDE.Infusion_None] = "No effect.",
 [HORDE.Infusion_Hemo] = [[
-Weapon damage increases Bleeding buildup. 
+Weapon damage increases Bleeding buildup by 25% of every hit. 
 
 25% less weapon damage.
 ]],
 [HORDE.Infusion_Concussive] = [[
-Weapon damage increases Stun buildup. 
-
-25% less weapon damage.
+Weapon damage increases Stun buildup by 30% of every hit.
 ]],
 [HORDE.Infusion_Septic] = [[
-Convert 75% non-Poison damage into Poison damage.
+Convert 100% non-Poison damage into Poison damage.
 
 Weapon deals only Poison damage.
-Weapon damage increases Break buildup. 
+Weapon damage increases Break buildup by 30% of every hit. 
 ]],
 [HORDE.Infusion_Flaming] = [[
-Convert 75% non-Fire damage into Fire damage.
+Convert 100% non-Fire damage into Fire damage.
 
 Weapon deals only Fire damage.
 Weapon ignites enemies on hit.
 ]],
 [HORDE.Infusion_Arctic] = [[
-Convert 75% non-Cold damage into Cold damage.
+Convert 100% non-Cold damage into Cold damage.
 
 Weapon deals only Cold damage.
-Weapon damage increases Frostbite buildup. 
+Weapon damage increases Frostbite buildup by 30% of every hit. 
 ]],
 [HORDE.Infusion_Galvanizing] = [[
-Convert 75% non-Lightning damage into Lightning damage.
+Convert 100% non-Lightning damage into Lightning damage.
 
 Weapon deals only Lightning damage.
-Weapon damage increases Shock buildup. 
+Weapon damage increases Shock buildup by 30% of every hit. 
 ]],
 [HORDE.Infusion_Quality] = [[
-20% increased weapon damage.
+30% increased weapon damage.
 
 Weapon damage is no longer affected by perks or gadgets.
 (i.e. Your perks become useless for this weapon)
@@ -128,8 +126,6 @@ Weapon damage is no longer affected by perks or gadgets.
 ]],
 [HORDE.Infusion_Rejuvenating] = [[
 Amplifies weapon healing/leeching by 25%.
-
-20% less weapon damage.
 ]],
 [HORDE.Infusion_Quicksilver] = [[
 Increases/decreases weapon damage based on player's available weight.
@@ -144,26 +140,21 @@ Reduces player damage taken based on weapon weight.
 
 Decrease 1% damage taken for every 1 weight on the weapon.
 
-20% less weapon damage.
 ]],
 [HORDE.Infusion_Siphoning] = [[
-25% increased leeching.
-
-20% less weapon damage.
+10 hp added upon kill
 ]],
 [HORDE.Infusion_Chrono] = [[
 Increases weapon damage the longer the weapon is being held by the user.
 
 6% damage increase per wave held by the user.
 Increase caps at 50%.
-
-20% decreased weapon damage.
 ]],
 [HORDE.Infusion_Ruination] = [[
 Increases weapon damage based on your current Necrosis buildup.
-5% damage increase per 10 Necrosis buildup, up to 25%.
+10% damage increase per 10 Necrosis buildup, up to 50%.
 
-Gain 10 Necrosis buildup per second while holding this weapon.
+Gain 5 Necrosis buildup per second while holding this weapon.
 ]]
 }
 
@@ -222,43 +213,43 @@ local function hemo_damage(ply, npc, bonus, hitgroup, dmginfo)
 end
 
 local function concussive_damage(ply, npc, bonus, hitgroup, dmginfo)
-    bonus.more = bonus.more * 0.75
-    npc:Horde_AddDebuffBuildup(HORDE.Status_Stun, dmginfo:GetDamage() * 0.25, ply, dmginfo:GetDamagePosition())
+    bonus.more = bonus.more * 1
+    npc:Horde_AddDebuffBuildup(HORDE.Status_Stun, dmginfo:GetDamage() * 0.3, ply, dmginfo:GetDamagePosition())
 end
 
 local function flaming_damage(ply, npc, bonus, hitgroup, dmginfo)
     if !HORDE:IsFireDamage(dmginfo) then
-        bonus.more = bonus.more * 0.75
+        bonus.more = bonus.more * 1
         dmginfo:SetDamageType(DMG_BURN)
     end
 end
 
 local function arctic_damage(ply, npc, bonus, hitgroup, dmginfo)
     if !HORDE:IsColdDamage(dmginfo) then
-        bonus.more = bonus.more * 0.75
+        bonus.more = bonus.more * 1
         dmginfo:SetDamageType(DMG_REMOVENORAGDOLL)
     end
-    npc:Horde_AddDebuffBuildup(HORDE.Status_Frostbite, dmginfo:GetDamage() * 0.25, ply, dmginfo:GetDamagePosition())
+    npc:Horde_AddDebuffBuildup(HORDE.Status_Frostbite, dmginfo:GetDamage() * 0.3, ply, dmginfo:GetDamagePosition())
 end
 
 local function septic_damage(ply, npc, bonus, hitgroup, dmginfo)
     if !HORDE:IsPoisonDamage(dmginfo) then
-        bonus.more = bonus.more * 0.75
+        bonus.more = bonus.more * 1
         dmginfo:SetDamageType(DMG_NERVEGAS)
     end
-    npc:Horde_AddDebuffBuildup(HORDE.Status_Break, dmginfo:GetDamage() * 0.25, ply, dmginfo:GetDamagePosition())
+    npc:Horde_AddDebuffBuildup(HORDE.Status_Break, dmginfo:GetDamage() * 0.3, ply, dmginfo:GetDamagePosition())
 end
 
 local function galvanizing_damage(ply, npc, bonus, hitgroup, dmginfo)
     if !HORDE:IsLightningDamage(dmginfo) then
-        bonus.more = bonus.more * 0.75
+        bonus.more = bonus.more * 1
         dmginfo:SetDamageType(DMG_SHOCK)
     end
-    npc:Horde_AddDebuffBuildup(HORDE.Status_Shock, dmginfo:GetDamage() * 0.25, ply, dmginfo:GetDamagePosition())
+    npc:Horde_AddDebuffBuildup(HORDE.Status_Shock, dmginfo:GetDamage() * 0.3, ply, dmginfo:GetDamagePosition())
 end
 
 local function quality_damage(ply, npc, bonus, hitgroup, dmginfo)
-    bonus.increase = 0.20
+    bonus.increase = 0.30
     bonus.more = 1
     return true
 end
@@ -272,11 +263,11 @@ local function impaling_damage(ply, npc, bonus, hitgroup, dmginfo)
 end
 
 local function rejuvenating_damage(ply, npc, bonus, hitgroup, dmginfo)
-    bonus.more = bonus.more * 0.8
+    bonus.more = bonus.more * 1
 end
 
 local function siphoning_damage(ply, npc, bonus, hitgroup, dmginfo)
-    bonus.more = bonus.more * 0.8
+    bonus.more = bonus.more * 1
 end
 
 local function quicksilver_damage(ply, npc, bonus, hitgroup, dmginfo)
@@ -294,14 +285,17 @@ end
 
 local function chrono_damage(ply, npc, bonus, hitgroup, dmginfo)
     local curr_weapon = HORDE:GetCurrentWeapon(dmginfo:GetInflictor())
-    if !IsValid(curr_weapon) then return end
-    bonus.increase = math.min(0.30, bonus.increase - 0.20 + (HORDE.current_wave - ply.Horde_Infusion_Chrono_Wave[curr_weapon:GetClass()]) * 0.06)
+    if not IsValid(curr_weapon) then return end
+    local chrono_wave = ply.Horde_Infusion_Chrono_Wave[curr_weapon:GetClass()]
+    if not chrono_wave then return end
+
+    bonus.increase = math.min(0.30, bonus.increase + (HORDE.current_wave - chrono_wave) * 0.06)
 end
 
 local function ruination_damage(ply, npc, bonus, hitgroup, dmginfo)
     local curr_weapon = HORDE:GetCurrentWeapon(dmginfo:GetInflictor())
-    if !IsValid(curr_weapon) then return end
-    bonus.increase = math.min(0.25, bonus.increase + ply:Horde_GetDebuffBuildup(HORDE.Status_Necrosis) / 200)
+    if !IsValid(curr_weapon) then return end--+ ply:Horde_GetDebuffBuildup(HORDE.Status_Necrosis) / 200
+    bonus.increase = math.min(0.25, bonus.increase + ply:Horde_GetDebuffBuildup(HORDE.Status_Necrosis) / 100)
 end
 
 local infusion_fns = {
@@ -341,7 +335,7 @@ hook.Add("Horde_OnPlayerDamagePre", "Horde_ApplyFusion", function (ply, npc, bon
     if res == true then return res end
 end)
 
-hook.Add("Horde_OnPlayerDamageTaken", "Horde_ApplyFusionDamageTaken", function (ply, dmg, bonus)
+hook.Add("Horde_OnPlayerDamageTaken", "Horde_ApplyFusionDamageTaken", function (ply, dmg, bonus)--titanium
     if not ply.Horde_Infusions then return end
     local curr_weapon = HORDE:GetCurrentWeapon(ply)
     if !curr_weapon:IsValid() then return end
@@ -351,17 +345,17 @@ hook.Add("Horde_OnPlayerDamageTaken", "Horde_ApplyFusionDamageTaken", function (
         bonus.less = bonus.less * (1 - 0.01 * HORDE.items[curr_weapon:GetClass()].weight)
     end
 end)
---[[
-hook.Add("Horde_OnEnemyKilled", "Horde_ApplyFusionOnKill", function (victim, ply, wpn)
+
+hook.Add("Horde_OnEnemyKilled", "Horde_ApplyFusionOnKill", function (victim, ply, wpn)--siphoning
     if not ply.Horde_Infusions then return end
     local curr_weapon = HORDE:GetCurrentWeapon(ply)
     if not curr_weapon:IsValid() then return end
     local infusion = ply.Horde_Infusions[curr_weapon:GetClass()]
     if infusion == HORDE.Infusion_Siphoning then
-        local healinfo = HealInfo:New({amount=1, healer=ply})
+        local healinfo = HealInfo:New({amount=10, healer=ply})
         HORDE:OnPlayerHeal(ply, healinfo)
     end
-end)]]--
+end)
 
 net.Receive("Horde_BuyInfusion", function (len, ply)
     if not ply:IsValid() or not ply:Alive() then return end
@@ -371,8 +365,8 @@ net.Receive("Horde_BuyInfusion", function (len, ply)
     and HORDE.items[class].infusions
     and !table.IsEmpty(HORDE.items[class].infusions)
     and table.HasValue(HORDE.items[class].infusions, infusion) then
-        local price = 100 + HORDE.items[class].price / 5
-        local ret_price = (100 + HORDE.items[class].price / 5) * 0.75
+        local price = math.floor(HORDE.items[class].price / 3)
+		local ret_price = (100 + HORDE.items[class].price / 5) * 0.5
         if ply:Horde_GetMoney() >= price then
             if not ply.Horde_Infusions then ply.Horde_Infusions = {} end
             if ply.Horde_Infusions[class] == nil then
@@ -396,7 +390,7 @@ end)
 net.Receive("Horde_SellInfusion", function (len, ply)
     if not ply:IsValid() or not ply:Alive() then return end
     local class = net.ReadString()
-    local ret_price = (100 + HORDE.items[class].price / 5) * 0.75
+    local ret_price = (100 + HORDE.items[class].price / 5) * 0.5
     ply:Horde_AddMoney(ret_price)
     HORDE:InfuseWeapon(ply, class, HORDE.Infusion_None)
     net.Start("Horde_SyncInfusion")

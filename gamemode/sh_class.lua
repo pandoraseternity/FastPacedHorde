@@ -99,7 +99,7 @@ function HORDE:GetDefaultClassesData()
         GetConVar("horde_base_runspeed"):GetInt(),
         "survivor_base",
         {
-            [1] = {title = "Survival", choices = {"medic_antibiotics", "assault_charge"}},
+            [1] = {title = "Survival", choices = {"medic_antibiotics", "medic_painkillers"}},
             [2] = {title = "Improvise", choices = {"berserker_breathing_technique", "demolition_frag_cluster"}},
             [3] = {title = "Imprinting", choices = {"heavy_liquid_armor", "cremator_entropy_shield"}},
             [4] = {title = "Inspired Learning", choices = {"ghost_headhunter", "specops_flare"}},
@@ -170,7 +170,7 @@ function HORDE:GetDefaultClassesData()
             [1] = {title = "Grenade", choices = {"demolition_frag_impact", "demolition_frag_cluster"}},
             [2] = {title = "Weaponry", choices = {"demolition_direct_hit", "demolition_seismic_wave"}},
             [3] = {title = "Approach", choices = {"demolition_fragmentation", "demolition_knockout"}},
-            [4] = {title = "Destruction", choices = {"demolition_chain_reaction", "demolition_pressurized_warhead"}},
+            [4] = {title = "Destruction", choices = {"demolition_pressurized_warhead", "demolition_chain_reaction"}},
         },
         4,nil,nil,nil,
         {HORDE.Class_Demolition}
@@ -212,7 +212,7 @@ function HORDE:GetDefaultClassesData()
 
     HORDE:CreateClass(
         HORDE.Class_Berserker,
-        "Has access to melee weapons and some ranged equipment.",
+        "Only has access to melee weapons.",
         100,
         GetConVar("horde_base_walkspeed"):GetInt(),
         GetConVar("horde_base_runspeed"):GetInt(),
@@ -267,7 +267,6 @@ if SERVER then
     util.AddNetworkString("Horde_SetSubclass")
     util.AddNetworkString("Horde_UnlockSubclass")
     util.AddNetworkString("Horde_SubclassUnlocked")
-    util.AddNetworkString("Horde_SelectSameSubclass")
     util.AddNetworkString("Horde_SyncSubclassUnlocks")
     HORDE:GetDefaultClassesData()
     if GetConVar("horde_default_class_config"):GetInt() == 1 then
@@ -317,16 +316,6 @@ if SERVER then
             ply:Horde_SyncEconomy()
             
             HORDE:SendNotification("You unlocked " .. subclass.PrintName .. " subclass.", 0, ply)
-        end
-    end)
-    
-    net.Receive("Horde_SelectSameSubclass", function (len, ply)
-        local subclass_name = net.ReadString()
-        local subclass = HORDE.subclasses[subclass_name]
-        if not subclass then return end
-
-        if subclass_name == ply:Horde_GetCurrentSubclass() then
-            HORDE:SendNotification("You are already this class.", 1, ply)
         end
     end)
 end
@@ -453,20 +442,7 @@ function plymeta:Horde_SetSubclass(class_name, subclass_name)
                 self:Horde_SyncEconomy()
             end
         end
-        
-        
-        if self.Horde_subclasses[class_name] == self:Horde_GetCurrentSubclass() then
-            --Check Minions
-            self:Horde_RemoveMinionsAndDrops()
-            
-            -- Sell and remove all upgrades
-            if self.Horde_Special_Upgrades then
-                for upgrades in pairs(self.Horde_Special_Upgrades) do 
-                    self:Horde_UnsetSpecialUpgrade(upgrades)
-                end
-            end
-        end
-        
+		
         HORDE:SendNotification(class_name .. " subclass changed to " .. HORDE.subclasses[subclass_name].PrintName, 0, self)
     end
     if CLIENT then

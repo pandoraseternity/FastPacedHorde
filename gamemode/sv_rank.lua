@@ -141,30 +141,32 @@ function HORDE:LoadRank(ply)
 	ply.Horde_Rank_Loaded = true
 end
 
+local expMultiConvar = GetConVar("horde_experience_multiplier")
+local startXpMult = HORDE.Difficulty[HORDE.CurrentDifficulty].xpMultiStart
+local endXpMult = HORDE.Difficulty[HORDE.CurrentDifficulty].xpMultiEnd
+local endMinusStartXp = endXpMult - startXpMult
+
 if GetConVar("horde_enable_sandbox"):GetInt() == 0 and GetConVar("horde_enable_rank"):GetInt() == 1 then
 	hook.Add("Horde_OnEnemyKilled", "Horde_GiveExp", function(victim, killer, wpn)
+
+		local wavePercent = HORDE.current_wave / HORDE.max_waves
+		local roundXpMulti = startXpMult + ( wavePercent * endMinusStartXp ) --This gets the xp multi number between min and max multi based on round
+		local expMulti = roundXpMulti * expMultiConvar:GetInt()
+
 		if HORDE.current_wave <= 0 or GetConVar("sv_cheats"):GetInt() == 1 then return end
-		if killer:IsPlayer() and killer:IsValid() and killer:Horde_GetClass() then
-			local class_name = killer:Horde_GetCurrentSubclass()
-			if killer:Horde_GetLevel(class_name) >= HORDE.max_level then return end
-			if victim:Horde_IsElite() then
-				killer:Horde_SetExp(class_name, killer:Horde_GetExp(class_name) + 2)
-				local p = math.random()
-				if p < 0.01 or (p < 0.1 and killer:Horde_GetGadget() == "gadget_corporate_mindset") then
-					-- Drop a skull token
-					local ent = ents.Create("horde_skull_token")
-					local pos = killer:GetPos()
-					local drop_pos = pos
-					drop_pos = drop_pos --+ VectorRand() * 5
-					drop_pos.z = pos.z + 15
-					ent:SetPos(drop_pos)
-					ent.Owner = killer
-					ent:Spawn()
-				end
-			else
-				killer:Horde_SetExp(class_name, killer:Horde_GetExp(class_name) + 1)
-				HORDE:SaveRank(killer)
+		if not killer:IsPlayer() or not killer:IsValid() or not killer:Horde_GetClass() then return end
+		local class_name = killer:Horde_GetCurrentSubclass()
+		if killer:Horde_GetLevel(class_name) >= HORDE.max_level then return end
+		if victim:Horde_IsElite() then
+			expMulti = expMulti * 1.5
+			local p = math.random()
+			if p < 0.01 or (p < 0.1 and killer:Horde_GetGadget() == "gadget_corporate_mindset") then
+                killer:Horde_AddSkullTokens(1)
+				net.Start("PrintSkullNotify")
+				net.Send(killer)
 			end
 		end
+		killer:Horde_SetExp(class_name, killer:Horde_GetExp(class_name) + math.floor(expMulti) )
+		HORDE:SaveRank(killer)
 	end)
 end

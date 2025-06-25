@@ -93,6 +93,7 @@ net.Receive("Horde_PerkChoice", function(len, ply)
             ply:Horde_SetMind(0)
         end
     end)
+    
 
     if HORDE.current_wave < HORDE:Horde_GetWaveForPerk(level) then return end
 

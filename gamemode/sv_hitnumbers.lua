@@ -13,7 +13,7 @@ hook.Add("PostEntityTakeDamage", "Horde_HitnumbersDamagePost", function(target, 
 
 	if not (attackerIsPlayer) then return end
 	if attacker == target then return end
-	if not target:IsNPC() then return end
+	if not target:IsNPC() or target:IsNextBot() then return end
 
 	local dmgAmount = dmginfo:GetDamage()
 	local dmgType   = dmginfo:GetDamageType()

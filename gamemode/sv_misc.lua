@@ -26,7 +26,7 @@ function HORDE:GetAntlionMinionsCount(ply)
     local count = 0
     if not HORDE.player_drop_entities[ply:SteamID()] then return 0 end
     for id, ent in pairs(HORDE.player_drop_entities[ply:SteamID()]) do
-        if ent:IsValid() and ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
+        if ent:IsNPC() and ent:GetClass() == "npc_vj_horde_antlion" then
             count = count + 1
         end
     end
@@ -35,39 +35,43 @@ end
 
 hook.Add("EntityTakeDamage", "ManhackContactDamage", function (target, dmginfo)
     local inflictor = dmginfo:GetInflictor()
+    if not IsValid(inflictor) then return end
+
     local ply = inflictor:GetNWEntity("HordeOwner")
-    if ply:IsPlayer() and inflictor:GetClass() == "npc_manhack" then
-        dmginfo:SetDamage(math.max(dmginfo:GetDamage(), inflictor:GetMaxHealth()))
-        timer.Simple(0, function() if inflictor:IsValid() then
-            if inflictor.Horde_Has_Antimatter_Shield then
-                local effectdata = EffectData()
-                effectdata:SetOrigin(inflictor:GetPos())
-                util.Effect("antimatter_explosion", effectdata)
-                if target:GetNWEntity("HordeOwner"):IsValid() then
-                    local dd = DamageInfo()
-                        dd:SetAttacker(inflictor:GetNWEntity("HordeOwner"))
-                        dd:SetInflictor(inflictor:GetNWEntity("HordeOwner"))
-                        dd:SetDamageType(DMG_CRUSH)
-                        dd:SetDamage(inflictor.Horde_Has_Antimatter_Shield)
-                    util.BlastDamageInfo(dd, inflictor:GetPos(), 200)
-                end
+    if not IsValid( ply ) then return end
+    if not ply:IsPlayer() then return end
+    if inflictor:GetClass() ~= "npc_manhack" then return end
+
+    dmginfo:SetDamage(math.max(dmginfo:GetDamage(), inflictor:GetMaxHealth()))
+    timer.Simple(0, function() if inflictor:IsValid() then
+        if inflictor.Horde_Has_Antimatter_Shield then
+            local effectdata = EffectData()
+            effectdata:SetOrigin(inflictor:GetPos())
+            util.Effect("antimatter_explosion", effectdata)
+            if target:GetNWEntity("HordeOwner"):IsValid() then
+                local dd = DamageInfo()
+                    dd:SetAttacker(inflictor:GetNWEntity("HordeOwner"))
+                    dd:SetInflictor(inflictor:GetNWEntity("HordeOwner"))
+                    dd:SetDamageType(DMG_CRUSH)
+                    dd:SetDamage(inflictor.Horde_Has_Antimatter_Shield)
+                util.BlastDamageInfo(dd, inflictor:GetPos(), 200)
             end
-            if inflictor.Horde_Has_Void_Shield then
-                local effectdata = EffectData()
-                effectdata:SetOrigin(inflictor:GetPos())
-                util.Effect("antimatter_explosion", effectdata)
-                if target:GetNWEntity("HordeOwner"):IsValid() then
-                    local dd = DamageInfo()
-                        dd:SetAttacker(inflictor:GetNWEntity("HordeOwner"))
-                        dd:SetInflictor(inflictor:GetNWEntity("HordeOwner"))
-                        dd:SetDamageType(DMG_CRUSH)
-                        dd:SetDamage(inflictor.Horde_Has_Void_Shield)
-                    util.BlastDamageInfo(dd, inflictor:GetPos(), 200)
-                end
+        end
+        if inflictor.Horde_Has_Void_Shield then
+            local effectdata = EffectData()
+            effectdata:SetOrigin(inflictor:GetPos())
+            util.Effect("antimatter_explosion", effectdata)
+            if target:GetNWEntity("HordeOwner"):IsValid() then
+                local dd = DamageInfo()
+                    dd:SetAttacker(inflictor:GetNWEntity("HordeOwner"))
+                    dd:SetInflictor(inflictor:GetNWEntity("HordeOwner"))
+                    dd:SetDamageType(DMG_CRUSH)
+                    dd:SetDamage(inflictor.Horde_Has_Void_Shield)
+                util.BlastDamageInfo(dd, inflictor:GetPos(), 200)
             end
-            inflictor:Remove() end
-        end)
-    end
+        end
+        inflictor:Remove() end
+    end)
 end)
 
 function HORDE:IsPlayerOrMinion(ent)
@@ -79,7 +83,7 @@ function HORDE:IsPlayerMinion(ent)
 end
 
 function HORDE:IsEnemy(ent)
-    return ent:IsNPC() and (not ent:IsPlayer()) and (not ent:GetNWEntity("HordeOwner"):IsValid())
+    return ent:IsNPC() or ent:IsNextBot() and (not ent:IsPlayer()) and (not ent:GetNWEntity("HordeOwner"):IsValid())
 end
 
 function HORDE:SpawnManhack(ply, id)
@@ -191,7 +195,21 @@ function HORDE:CheckDemonStompCharges(ply)
     end)
 end
 
-hook.Add("PlayerTick", "Horde_Misc", function(ply, mv)
+function HORDE:CheckDarts(ply)
+    timer.Simple(0.5, function ()
+        if not ply:IsValid() or not ply:Horde_GetPerk("medic_base") then return end
+        local max_charges = 1
+        if ply:Horde_GetPerk("medic_antibiotics") then
+            max_charges = max_charges + 2
+        end
+        if ply:Horde_GetPerk("medic_cellular_implosion") then
+            max_charges = max_charges + 2
+        end
+        ply:Horde_SetPerkCharges(max_charges)
+    end)
+end
+
+/*hook.Add("PlayerTick", "Horde_Misc", function(ply, mv)
     if !ply:IsOnGround() then return end
     local tr = util.TraceHull({
         start = ply:GetPos(),
@@ -206,7 +224,7 @@ hook.Add("PlayerTick", "Horde_Misc", function(ply, mv)
         vrand = vrand * 200
         ply:SetVelocity(vrand)
     end
-end)
+end)*/
 
 function HORDE:CreateTimer(identifier, delay, repitition, fn)
     timer.Create("Horde_" .. identifier, delay, repitition, fn)
@@ -263,8 +281,34 @@ function HORDE:SendNotificationObjective(objective, str, ply)
 end
 
 hook.Add("PlayerSwitchFlashlight", "Horde_BlockFlashlightForMages", function (ply, switchOn)
-    if (ply:Horde_GetMaxMind() > 0) then return false end
+    --if (ply:Horde_GetMaxMind() > 0) then return false end
 end)
+
+/*if CLIENT then
+    hook.Add("PlayerButtonDown", "Horde_CustomKeyBind", function(ply, key)
+        if input.IsButtonDown(KEY_LSHIFT) then
+            ply:ConCommand("+feedbacker")
+        end
+    end)
+end*/
+
+hook.Add( "PreGamemodeLoaded", "Commandloader", function()
+RunConsoleCommand("sv_playermodel_selector_force", "1")
+RunConsoleCommand("mat_reloadallmaterials")
+RunConsoleCommand("sv_sticktoground", "1")
+end)
+
+
+hook.Add( "OnGamemodeLoaded", "CurrentCommandloader", function()
+RunConsoleCommand("sv_playermodel_selector_force", "1")
+RunConsoleCommand("sv_defaultdeployspeed", "10")
+RunConsoleCommand("sv_hitnums_showalldamage", "1")
+RunConsoleCommand("vj_npc_globalcorpselimit", "2")
+RunConsoleCommand("sk_plr_crossbow_expoisondamage", "400")
+RunConsoleCommand("vj_npc_nobloodpool", "1")
+RunConsoleCommand("sv_sticktoground", "1")
+end)
+
 
 function HORDE:SimpleParticleSystem(particle_name, pos, angles, parent)
     local p = ents.Create("info_particle_system")

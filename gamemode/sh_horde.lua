@@ -1,8 +1,8 @@
 CreateConVar("horde_default_enemy_config", 1, FCVAR_SERVER_CAN_EXECUTE, "Use default enemy wave config settings.")
-CreateConVar("horde_default_item_config", 1, FCVAR_SERVER_CAN_EXECUTE, "Use default item config settings.")
-CreateConVar("horde_default_class_config", 1, FCVAR_SERVER_CAN_EXECUTE, "Use default class config settings.")
+CreateConVar("horde_default_item_config", 0, FCVAR_SERVER_CAN_EXECUTE, "Use default item config settings.")
+CreateConVar("horde_default_class_config", 0, FCVAR_SERVER_CAN_EXECUTE, "Use default class config settings.")
 CreateConVar("horde_max_wave", 10, FCVAR_SERVER_CAN_EXECUTE, "Max waves.")
-CreateConVar("horde_break_time", 60, FCVAR_SERVER_CAN_EXECUTE, "Break time between waves.")
+CreateConVar("horde_break_time", 70, FCVAR_SERVER_CAN_EXECUTE, "Break time between waves.")
 CreateConVar("horde_enable_shop", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_REPLICATED, "Enables shop menu or not.")
 CreateConVar("horde_enable_shop_icons", 1, FCVAR_ARCHIVE + FCVAR_REPLICATED, "Enables shop menu icons or not.")
 CreateConVar("horde_enable_perk", 1, FCVAR_SERVER_CAN_EXECUTE + FCVAR_REPLICATED, "Enables perks or not.")
@@ -20,16 +20,16 @@ CreateConVar("horde_external_lua_config", "", FCVAR_SERVER_CAN_EXECUTE, "Name of
 --CreateConVar("horde_starter_weapon_1", "", FCVAR_ARCHIVE, "Starter weapon 1.")
 --CreateConVar("horde_starter_weapon_2", "", FCVAR_ARCHIVE, "Starter weapon 2.")
 
-CreateConVar("horde_director_interval", 9, FCVAR_SERVER_CAN_EXECUTE, "Game director execution interval in seconds. Decreasing this increases spawn rate.")
+CreateConVar("horde_director_interval", 6, FCVAR_SERVER_CAN_EXECUTE, "Game director execution interval in seconds. Decreasing this increases spawn rate.")
 CreateConVar("horde_max_enemies_alive_base", 20, FCVAR_SERVER_CAN_EXECUTE, "Maximum number of living enemies (base).")
 CreateConVar("horde_max_enemies_alive_scale_factor", 5, FCVAR_SERVER_CAN_EXECUTE, "Scale factor of the maximum number of living enemies for multiplayer.")
-CreateConVar("horde_max_enemies_alive_max", 50, FCVAR_SERVER_CAN_EXECUTE, "Maximum number of maximum living enemies.")
+CreateConVar("horde_max_enemies_alive_max", 30, FCVAR_SERVER_CAN_EXECUTE, "Maximum number of maximum living enemies.")
 CreateConVar("horde_corpse_cleanup", 0, FCVAR_SERVER_CAN_EXECUTE, "Remove corpses.")
 
-CreateConVar("horde_base_walkspeed", 180, FCVAR_SERVER_CAN_EXECUTE, "Base walkspeed.")
-CreateConVar("horde_base_runspeed", 220, FCVAR_SERVER_CAN_EXECUTE, "Base runspeed.")
+CreateConVar("horde_base_walkspeed", 220, FCVAR_SERVER_CAN_EXECUTE, "Base walkspeed.")
+CreateConVar("horde_base_runspeed", 360, FCVAR_SERVER_CAN_EXECUTE, "Base runspeed.")
 
-CreateConVar("horde_difficulty", 0, FCVAR_SERVER_CAN_EXECUTE, "Difficulty.")
+CreateConVar("horde_difficulty", 3, FCVAR_SERVER_CAN_EXECUTE, "Difficulty.")
 CreateConVar("horde_disable_difficulty_voting", 0, FCVAR_SERVER_CAN_EXECUTE, "Disable difficulty voting.")
 CreateConVar("horde_endless", 0, FCVAR_SERVER_CAN_EXECUTE, "Endless.")
 CreateConVar("horde_total_enemies_scaling", 0, FCVAR_SERVER_CAN_EXECUTE, "Forces the gamemode to multiply maximum enemy count by this.")
@@ -53,11 +53,13 @@ CreateConVar("horde_display_damage", 1, FCVAR_ARCHIVE, "Display damage.")
 CreateConVar("horde_enable_health_gui", 1, FCVAR_ARCHIVE, "Enables health UI.")
 CreateConVar("horde_enable_ammo_gui", 1, FCVAR_ARCHIVE, "Enables ammo UI.")
 
-CreateConVar("horde_enable_class_models", 1, FCVAR_ARCHIVE, "Enables ammo UI.")
-CreateConVar("horde_testing_attachment_copy", 0, FCVAR_SERVER_CAN_EXECUTE + FCVAR_REPLICATED, "Make everything available in attachment menu and right click to copy attachment class")
 CreateConVar("horde_testing_render_hitboxes", 0, FCVAR_SERVER_CAN_EXECUTE, "Renders hitboxes for enemies. For testing purposes only.")
+CreateClientConVar("horde_enable_music", 1, FCVAR_ARCHIVE, "Enables boss music on waves. Has no effect if changed during boss waves.")
+CreateConVar("horde_enable_class_models", 1, FCVAR_ARCHIVE, "Enables ammo UI.")
 CreateClientConVar("horde_disable_default_gadget_use_key", 0, FCVAR_ARCHIVE, "Disable default key bind for active gadgets.")
 CreateClientConVar("horde_disable_default_quick_grenade_key", 0, FCVAR_ARCHIVE, "Disable default key bind for quick grenade.")
+
+CreateConVar("horde_experience_multiplier", 1, FCVAR_ARCHIVE, "Changes how much kill xp is multiplied by.")
 
 if SERVER then
 util.AddNetworkString("Horde_SideNotification")
@@ -77,7 +79,7 @@ end
 
 HORDE = {}
 HORDE.__index = HORDE
-HORDE.version = "2.1.1"
+HORDE.version = "1.1.2.1"
 print("[HORDE] HORDE Version is " .. HORDE.version) -- Sanity check
 
 HORDE.color_crimson = Color(220, 20, 60, 225)
@@ -98,7 +100,7 @@ HORDE.total_enemies_per_wave = {15, 19, 23, 27, 30, 33, 36, 39, 42, 45}
 --HORDE.total_enemies_per_wave = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 -- Director
-HORDE.difficulty = 1
+HORDE.CurrentDifficulty = 3
 HORDE.total_enemies_this_wave = 0
 HORDE.alive_enemies_this_wave = 0
 HORDE.killed_enemies_this_wave = 0
@@ -144,6 +146,7 @@ HORDE.enable_ammobox = GetConVar("horde_enable_ammobox"):GetInt()
 -- the network.
 HORDE.player_drop_entities = {}
 HORDE.player_ready = {}
+HORDE.player_skip_check = {}
 HORDE.player_damage = {}
 HORDE.player_damage_taken = {}
 HORDE.player_heal = {}
@@ -174,27 +177,32 @@ if ArcCWInstalled then
         ArcCW.AttachmentBlacklistTable["go_perk_refund"] = true
         ArcCW.AttachmentBlacklistTable["go_perk_slow"] = true
         ArcCW.AttachmentBlacklistTable["go_m249_mag_12g_45"] = true
-        --Disable default attachments that have no benefit--
-        ArcCW.AttachmentBlacklistTable["go_ammo_tr"] = true
-        ArcCW.AttachmentBlacklistTable["go_ammo_blanks"] = true
-        --[[
-        --Disable default shotgun ammo to use modified Horde version--
-        ArcCW.AttachmentBlacklistTable["go_ammo_sg_triple"] = true
-        ArcCW.AttachmentBlacklistTable["go_ammo_sg_sabot"] = true
-        ArcCW.AttachmentBlacklistTable["go_ammo_sg_slug"] = true
-        ArcCW.AttachmentBlacklistTable["go_ammo_sg_scatter"] = true
-        ArcCW.AttachmentBlacklistTable["go_ammo_sg_magnum"] = true
-        --Disable default shotgun mods to use modified Horde version--
-        ArcCW.AttachmentBlacklistTable["go_m1014_mag_4"] = true
-        ArcCW.AttachmentBlacklistTable["go_m1014_mag_8"] = true
-        ArcCW.AttachmentBlacklistTable["go_mag7_mag_3"] = true
-        ArcCW.AttachmentBlacklistTable["go_nova_mag_8"] = true
-        ArcCW.AttachmentBlacklistTable["go_870_mag_4"] = true
-        ArcCW.AttachmentBlacklistTable["go_870_mag_8"] = true
-        ]]
     end
 end
 
+local metaENT = FindMetaTable("NPC")
+function metaENT:StartSoundTrack()
+	if GetConVar("horde_enable_music"):GetInt() != 1 then return end
+	if !self.HasSounds or !self.HasSoundTrack then return end
+	if math.random(1, self.SoundTrackChance) == 1 then
+		self.VJ_SD_PlayingMusic = true
+		net.Start("vj_music_run")
+		net.WriteEntity(self)
+		net.WriteString(VJ.PICK(self.SoundTbl_SoundTrack))
+		net.WriteFloat(self.SoundTrackVolume)
+		net.WriteFloat(self.SoundTrackPlaybackRate)
+		//net.WriteFloat(self.SoundTrackFadeOutTime)
+		net.Broadcast()
+	end
+end
+
+function metaENT:EndSoundTrack()
+	if GetConVar("horde_enable_music"):GetInt() != 0 then return end
+	if self.VJ_SD_PlayingMusic == true then
+		self.VJ_SD_PlayingMusic = false
+	end
+	timer.Remove("vj_music_think")
+end
 
 -- Disable Godmode
 RunConsoleCommand("sbox_godmode", "0")
@@ -231,12 +239,15 @@ function HORDE:GetUpgradePrice(class, ply)
     else
         level = ply:Horde_GetUpgrade(class)
     end
-    if class == "horde_void_projector" or class == "horde_solar_seal" or class == "horde_astral_relic" or class == "horde_carcass" or class == "horde_pheropod" then
+    if class == "horde_void_projector" or class == "horde_solar_seal" or class == "horde_astral_relic" or class == "horde_carcass" then
         local price = 800 + 25 * level
+        return price
+	elseif class == "horde_pheropod" then
+        local price = 600 + 25 * level
         return price
     else
         local base_price = HORDE.items[class].price
-        local price = HORDE:Round2(math.max(100, base_price / 2) + math.max(10, base_price / 64) * level)
+        local price = HORDE:Round2(math.max(100, base_price / 3) + math.max(10, base_price / 64) * level)
         return price
     end
 end
@@ -325,8 +336,8 @@ function HORDE.Queue:Create()
         return (last-first+1)
     end
     return t
-end
-
+  end
+  
 --Custom Line of sight check
 local function checkInSight(trace, targetent, advanced)
     if(!advanced) then
@@ -390,13 +401,13 @@ end
 -- This is a SHARED file, you need to separate the codes for server and client
 if(SERVER) then -- Codes for serverside
     util.AddNetworkString("Horde_ScreenEffect")
-    
+
     function HORDE.SendBorderEffect(ply, data)
         net.Start("Horde_ScreenEffect")
         net.WriteTable(data)
         net.Send(ply)
     end
-    --[[
+	--[[
 	function HORDE.SetOldWeapons(player)
         player.OldWeapons = {}
         for k,v in ipairs(player:GetWeapons()) do
@@ -503,106 +514,4 @@ else -- Codes for clientside
             surface.DrawTexturedRect(0, 0, ScrW(), ScrH())
         end
     end)
-    
-    ---------Experimental Circle Paint----------------
-    local clr = Color(0, 0, 0, 0)
-    function HORDE.MaskedSphereRing(pos, radius, steps, thickness, color)
-        cam.IgnoreZ(false)
-        render.SetStencilEnable(true)
-        render.SetStencilCompareFunction(STENCIL_ALWAYS)
-        render.SetStencilPassOperation(STENCIL_KEEP)
-        render.SetStencilFailOperation(STENCIL_KEEP)
-        render.SetStencilZFailOperation(STENCIL_KEEP)
-        render.SetStencilReferenceValue(1)
-        render.SetStencilTestMask(255)
-        render.SetStencilWriteMask(255)
-        render.ClearStencil()
-        render.SetColorMaterial()
-
-        local r1, r2 = radius, radius + thickness
-
-        render.SetStencilCompareFunction(STENCIL_ALWAYS)
-        render.SetStencilZFailOperation(STENCIL_INCRSAT)
-        render.DrawSphere(pos, -r2, steps, steps, clr)
-        render.SetStencilZFailOperation(STENCIL_DECR)
-        render.DrawSphere(pos, r2, steps, steps, clr)
-        render.SetStencilZFailOperation(STENCIL_INCR)
-        render.DrawSphere(pos, -r1, steps, steps, clr)
-        render.SetStencilZFailOperation(STENCIL_DECR)
-        render.DrawSphere(pos, r1, steps, steps, clr)
-
-        local dir = LocalPlayer():EyeAngles():Forward()
-
-        render.SetStencilCompareFunction( STENCIL_EQUAL )
-        render.SetStencilReferenceValue( 1 )
-        render.DrawQuadEasy(EyePos() + dir * 10, -dir, 200, 200, color, 0)
-
-        render.SetStencilEnable(false)
-    end
-    --[[
-    net.Receive("Horde_GetPerkLevelBonus", function()
-        local ply = net.ReadEntity()
-        local perk = net.ReadString()
-        local bonus = net.ReadFloat()
-        if not ply:IsValid() then return end
-        ply:Horde_SetPerkLevelBonus(perk, bonus)
-    end)
-    ]]
-    
-    --network this so arccw attachments know you're in trader zone
-    net.Receive("Horde_IsInBuyZone", function()
-        local int = net.ReadBool()
-        local ply = LocalPlayer()
-        if not ply:IsValid() then return end
-        ply.Horde_CanBuy = int
-    end)
-    
-    --network this so arccw attachments know you're in trader time
-    net.Receive("Horde_IsInBreakTime", function()
-        local int = net.ReadBool()
-        local ply = LocalPlayer()
-        if not ply:IsValid() then return end
-        ply.Horde_IsInBreakTime = int
-    end)
-    
-    ---------- highlighted text test ---------------------------------------------------------
-    --[[
-    local label = vgui.Create("RichText", ui)
-    label:SetPos(imggap, title:GetY() + title:GetTall() + imggap)
-    label:SetSize(maxwide, ui:GetTall())
-    label:SetFontInternal("ZScenario-UISmall2x")
-    label:InsertColorChange(255, 255, 255, 255)
-    local clr = color_white
-    local expected_tag, expected_endtag, expecting_endtag = "<clr>", "<clr>", false
-    local skipTo = -1
-    local tmp = ""
-    for i = 1, #str do
-        local f = string.sub(str, i, i + 4)
-        if(!expecting_endtag) then
-            if(f == expected_tag) then
-                expecting_endtag = true
-                local r, g, b = 255, 255, 255
-                local hex = string.sub(str, i + 6, i + 11)
-                label:InsertColorChange(tonumber(string.sub(hex, 1, 2), 16), tonumber(string.sub(hex, 3, 4), 16), tonumber(string.sub(hex, 5, 6), 16), 255)
-                skipTo = i + 12
-            end
-        else
-            if(f == expected_tag) then
-                expecting_endtag = false
-                label:InsertColorChange(255, 255, 255, 255)
-                skipTo = i + 4
-            end
-        end
-        if(i > skipTo) then
-            label:AppendText(str[i])
-        end
-    end
-    ]]
-    ------------------------------------------------------------------------
-    
-    hook.Add("PreDrawOpaqueRenderables", "Horde_Circle_Preview_Range", function(depth, skybox, skybox3d)
-        hook.Run("PreDraw_ImmersionBreakingCircles")
-    end)
-    
-    
 end

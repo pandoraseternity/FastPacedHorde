@@ -13,6 +13,9 @@ util.AddNetworkString("Horde_SyncClientExps")
 util.AddNetworkString("Horde_ShowLeaderboardsTemporarily")
 
 HORDE.vote_remaining_time = 60
+HORDE.respawncountdown = 80
+HORDE.aliveplayers = 0
+HORDE.deadplayers = 0
 HORDE.game_end = nil
 local plymeta = FindMetaTable("Player")
 local map_list = {}
@@ -32,12 +35,14 @@ function HORDE:GiveStarterWeapons(ply)
     if ply:Alive() and (not ply:Horde_GetGivenStarterWeapons()) then
         if HORDE.starter_weapons[ply:Horde_GetCurrentSubclass()] then
             for _, wpn_class in pairs(HORDE.starter_weapons[ply:Horde_GetCurrentSubclass()]) do
+				local props = HORDE.items[wpn_class]
                 ply:Give(wpn_class)
             end
         end
 
         if HORDE.starter_weapons["All"] then
             for _, wpn_class in pairs(HORDE.starter_weapons["All"]) do
+				local props = HORDE.items[wpn_class]
                 ply:Give(wpn_class)
             end
         end
@@ -46,6 +51,52 @@ function HORDE:GiveStarterWeapons(ply)
         ply:Horde_SetGivenStarterWeapons(true)
     end
 end
+
+local function setNextMapDifficulty()
+    local chosen_diff = HORDE.CurrentDifficulty
+    local chosen_diff_count = 0
+
+    local diff_collect = {}
+    for _, diff in ipairs(HORDE.Difficulty) do
+        diff_collect[diff.name] = 0
+    end
+
+    for ply, diff_voted in pairs(diff_votes) do
+        for diff, count in pairs(diff_collect) do
+            if diff == diff_voted then
+                diff_collect[diff] = count + 1
+            end
+        end
+    end
+
+    for diff, count in pairs(diff_collect) do
+        if count > chosen_diff_count then
+            chosen_diff = diff
+            chosen_diff_count = count
+        end
+    end
+
+    local foundDiff = false
+    for id, diff in ipairs( HORDE.Difficulty ) do
+        if diff.name == chosen_diff then
+            GetConVar( "horde_difficulty" ):SetInt( id )
+            foundDiff = true
+            break
+        end
+    end
+
+    if not foundDiff then
+        GetConVar( "horde_difficulty" ):GetInt( )
+    end
+end
+
+hook.Add( "MapVote_RTVStart", "Horde_MapVote_RTVStarted", function()
+    HORDE:GameEnd("Change Map")
+end)
+
+hook.Add( "MapVote_ChangeMap", "Horde_MapVote_ChangeMap", function(map)
+    setNextMapDifficulty()
+end)
 
 function HORDE:GameEnd(status)
     if HORDE.game_end then return end
@@ -69,16 +120,16 @@ function HORDE:GameEnd(status)
         net.Broadcast()
     end
 
-    local tokens = math.floor(HORDE.current_wave / 2)
+    local tokens = math.floor(HORDE.current_wave)
     if status == "VICTORY" then
-        tokens = tokens + math.max(0, HORDE.difficulty - 1)
+        tokens = tokens + math.max(0, HORDE.CurrentDifficulty + 5)
     end
     for _, ply in pairs(player.GetHumans()) do
         ply:Horde_AddSkullTokens(tokens)
     end
 
     HORDE.game_end = true
-    if not player.GetHumans() or player.GetCount() < 1 then
+    if player.GetCount() < 1 then
         map_list = HORDE:GetNextMaps()
 
         if not map_list then
@@ -243,6 +294,11 @@ function HORDE:GameEnd(status)
         ::cont::
     end
 
+    if _G.MapVote then
+        MapVote.Start()
+        return
+    end
+
     timer.Create("Horde_MapVoteCountdown", 1, 0, function ()
         if HORDE.vote_remaining_time <= 0 then
             timer.Remove("Horde_MapVoteCountdown")
@@ -270,40 +326,7 @@ function HORDE:GameEnd(status)
                 end
             end
 
-            local chosen_diff = HORDE.difficulty
-            local chosen_diff_count = 0
-
-            local diff_collect = {}
-            for _, diff in ipairs(HORDE.difficulty_text) do
-                diff_collect[diff] = 0
-            end
-
-            for ply, diff_voted in pairs(diff_votes) do
-                for diff, count in pairs(diff_collect) do
-                    if diff == diff_voted then
-                        diff_collect[diff] = count + 1
-                    end
-                end
-            end
-
-            for diff, count in pairs(diff_collect) do
-                if count > chosen_diff_count then
-                    chosen_diff = diff
-                    chosen_diff_count = count
-                end
-            end
-
-            if chosen_diff == "NORMAL" then
-                GetConVar("horde_difficulty"):SetInt(0)
-            elseif chosen_diff == "HARD" then
-                GetConVar("horde_difficulty"):SetInt(1)
-            elseif chosen_diff == "REALISM" then
-                GetConVar("horde_difficulty"):SetInt(2)
-            elseif chosen_diff == "NIGHTMARE" then
-                GetConVar("horde_difficulty"):SetInt(3)
-            else
-                GetConVar("horde_difficulty"):SetInt(4)
-            end
+            setNextMapDifficulty()
 
             timer.Simple(0, function() RunConsoleCommand("changelevel", chosen_map) end)
         end
@@ -315,6 +338,7 @@ function HORDE:GameEnd(status)
 end
 
 net.Receive("Horde_Votemap", function (len, ply)
+    if _G.MapVote then return end
     map_votes[ply] = net.ReadString()
 
     local map_collect = {}
@@ -361,7 +385,7 @@ function HORDE:PlayerInit(ply)
     net.Send(ply)
 
     net.Start("Horde_SyncDifficulty")
-        net.WriteUInt(HORDE.difficulty,3)
+        net.WriteUInt(HORDE.CurrentDifficulty,4)
     net.Send(ply)
 
     net.Start("Horde_SyncGameInfo")
@@ -372,15 +396,15 @@ function HORDE:PlayerInit(ply)
         net.Start("Horde_Disable_Levels")
         net.Send(ply)
     end
-    if not HORDE.start_game or HORDE:InBreak() then
+    if not HORDE.start_game then
         HORDE.player_ready[ply] = 0
         net.Start("Horde_PlayerReadySync")
             net.WriteTable(HORDE.player_ready)
         net.Broadcast()
-        
+		
         net.Start("Horde_ShowLeaderboardsTemporarily")
         net.Send(ply)
-        
+		
         local tip = HORDE:GetTip()
         if tip then
             net.Start("Horde_SyncTip")
@@ -414,14 +438,12 @@ function HORDE:PlayerInit(ply)
             net.Send(ply)
         end
 
-        --[[
         local tip = HORDE:GetTip()
         if tip and (not HORDE.horde_boss) then
             net.Start("Horde_SyncTip")
                 net.WriteString(HORDE:GetTip())
             net.Send(ply)
         end
-        ]]
 
         if HORDE.horde_active_holdzones then
             for id, zone in pairs(HORDE.horde_active_holdzones) do
@@ -531,8 +553,8 @@ function HORDE:PlayerInit(ply)
 
     if GetConVar("horde_enable_sandbox"):GetInt() == 1 then
         net.Start("Horde_SyncStatus")
-            net.WriteUInt(HORDE.Status_ExpDisabled, 8)
-            net.WriteUInt(1, 8)
+        net.WriteUInt(HORDE.Status_ExpDisabled, 8)
+        net.WriteUInt(1, 8)
         net.Send(ply)
     end
 
@@ -540,7 +562,7 @@ function HORDE:PlayerInit(ply)
     local added = HORDE:TryAddTopTen(ply)
     if not added then
         net.Start("Horde_SyncTopTen")
-            net.WriteString(util.TableToJSON(HORDE.top_tens))
+        net.WriteString(util.TableToJSON(HORDE.top_tens))
         net.Broadcast()
     end
 
@@ -552,15 +574,6 @@ function HORDE:PlayerInit(ply)
         else
             net.WriteUInt(0, 8)
         end
-        net.Send(ply)
-        
-        --network this so arccw attachments know you're in buy zone
-        net.Start("Horde_IsInBuyZone")
-            if HORDE.current_break_time > 0 then
-                net.WriteBool(true)
-            else
-                net.WriteBool(false)
-            end
         net.Send(ply)
     end
 
@@ -574,7 +587,7 @@ function HORDE:PlayerInit(ply)
         end
         total_player = total_player + 1
     end
-    
+
     if total_player > 0 and total_player == ready_count then
         HORDE.start_game = true
     end
@@ -608,14 +621,14 @@ hook.Add("PlayerDisconnected", "Horde_PlayerDisconnect", function(ply)
     end
 
     if not ply:IsValid() then return end
-    
+
     -- Remove all the entities he owns
     if HORDE.player_drop_entities[ply:SteamID()] then
         for _, ent in pairs(HORDE.player_drop_entities[ply:SteamID()]) do
             if ent:IsValid() then
                 ent.Horde_Minion_Respawn = nil
                 timer.Remove("Horde_ManhackRespawn" .. ent:GetCreationID())
-                ent:Remove()
+                --ent:Remove()
             end
         end
     end
@@ -627,8 +640,8 @@ net.Receive("Horde_Votediff", function (len, ply)
     diff_votes[ply] = net.ReadString()
 
     local diff_collect = {}
-    for _, diff in ipairs(HORDE.difficulty_text) do
-        diff_collect[diff] = 0
+    for _, diff in ipairs( HORDE.Difficulty ) do
+        diff_collect[diff.name] = 0
     end
 
     for _, diff_voted in pairs(diff_votes) do
@@ -644,14 +657,15 @@ net.Receive("Horde_Votediff", function (len, ply)
 end)
 
 HORDE.VoteChangeMap = function (ply)
+    if _G.MapVote then return end
     HORDE.player_vote_map_change[ply] = 1
-    if table.Count(HORDE.player_vote_map_change) == table.Count(player.GetAll()) then
-        HORDE:SendNotification("All players want to change map! Initiating map vote...", 0)
+    if table.Count(HORDE.player_vote_map_change) >= math.floor(player.GetCount() * 0.8) then
+        HORDE:SendNotification("RTV Vote passed! Initiating map vote...", 0)
         timer.Simple(1, function ()
             HORDE:GameEnd("Change Map")
         end)
     else
-        HORDE:SendNotification(ply:GetName() .. " wants to change the map. (" .. tostring(table.Count(HORDE.player_vote_map_change)) .. "/" .. tostring(table.Count(player.GetAll())) .. ")", 0)
+        HORDE:SendNotification(ply:GetName() .. " wants to change the map. (" .. tostring(table.Count(HORDE.player_vote_map_change)) .. "/" .. tostring(math.floor(player.GetCount() * 0.66)) .. ")", 0)
     end
 end
 
@@ -659,22 +673,26 @@ hook.Add("PlayerSpawn", "Horde_PlayerInitialSpawn", function(ply)
     if ply.Horde_Fake_Respawn == true then return end
     if ply:IsValid() then
         ply:SetCollisionGroup(15)
-        ply:SetCanZoom(false)
+        ply:SetCanZoom(true)
         ply:ConCommand([[mat_colorcorrection 1]])
         ply:ConCommand([[cl_showhints 0]])
         ply:SetMoveType(MOVETYPE_WALK)
-
-        local beacons = ents.FindByClass("horde_watchtower_beacon")
-        if beacons and #beacons > 0 then
-            local i = math.random(1, #beacons)
-            ply:SetPos(beacons[i]:GetPos() + Vector(0,0,24))
+    end
+	
+    for _, ent in pairs( ents.GetAll() ) do
+        if ent:IsWeapon() and not IsValid( ent:GetOwner() ) and ent.lastWeaponHolder == ply then
+            --local pickedUp = ply:PickupWeapon( ent )
+            --if not pickedUp then
+                ent:SetPos( ply:WorldSpaceCenter() + Vector( 0, 0, 0 ) )
+			--end
         end
     end
+	
 end)
 
 hook.Add("Move", "Horde_PlayerMove", function (ply, mv)
     if ply:Horde_GetClass() then
-        ply:SetJumpPower(150)
+        ply:SetJumpPower(250)
         local bonus_walk = {more = 1, increase = 0}
         local bonus_run = {more = 1, increase = 0}
         hook.Run("Horde_PlayerMoveBonus", ply, bonus_walk, bonus_run)
@@ -694,8 +712,8 @@ hook.Add("Horde_PlayerMoveBonus", "Horde_PlayerPayloadMove", function (ply, bonu
 end)
 
 
-local function Horde_DeathSpectatingFunction(victim, inflictor, attacker)
-    if not HORDE.start_game or HORDE.current_break_time > 0 then return end
+local function Horde_DeathSpectatingFunction(victim, inflictor, attacker)--simply does the spectating
+    if not HORDE.start_game or HORDE.current_break_time > 0 or victim.Horde_Revival_Marked then return end
     timer.Simple(1, function()
         if victim:IsValid() and (not victim:Alive()) then
             victim:SetObserverMode(OBS_MODE_ROAMING)
@@ -786,14 +804,14 @@ hook.Add("KeyPress", "PlayerChangeSpectate", function(ply, key)
         ply:SetObserverMode(OBS_MODE_ROAMING)
         return
     end
-	if (key == IN_JUMP) then
-		if ply:GetObserverMode() == OBS_MODE_ROAMING then
+    if (key == IN_JUMP) then
+        if ply:GetObserverMode() == OBS_MODE_ROAMING then
             ply:SetObserverMode(OBS_MODE_CHASE)
             ply:Horde_SpectateNextPlayer()
         else
             ply:SetObserverMode(OBS_MODE_ROAMING)
         end
-	end
+    end
 
     if (key == IN_ATTACK) and ply:GetObserverMode() == OBS_MODE_CHASE then
         ply:Horde_SpectateNextPlayer()
@@ -809,17 +827,17 @@ hook.Add("PlayerSilentDeath", "Horde_DeathSpectatingFunction", Horde_DeathSpecta
 
 function HORDE:CheckAlivePlayers()
     HORDE.refresh_living_players = true
-    local aliveplayers = 0
-    local deadplayers = 0
+    HORDE.aliveplayers = 0
+    HORDE.deadplayers = 0
     for _, ply in pairs(player.GetAll()) do
         if ply:IsValid() and ply:Alive() then
-            aliveplayers = aliveplayers + 1
+            HORDE.aliveplayers = HORDE.aliveplayers + 1
         end
         if ply:IsValid() and not ply:Alive() then
-            deadplayers = deadplayers + 1
+            HORDE.deadplayers = HORDE.deadplayers + 1
         end
     end
-    if aliveplayers == 0 and deadplayers > 0 then
+    if HORDE.aliveplayers == 0 and HORDE.deadplayers > 0 then
         for _, ply in pairs(player.GetAll()) do
             -- ply:ScreenFade(SCREENFADE.OUT, Color(0,0,0), 6, 2)
             -- ply:Freeze(true)
@@ -830,26 +848,67 @@ function HORDE:CheckAlivePlayers()
     end
 end
 
-
-hook.Add("PlayerDeathThink", "Horde_PlayerDeathThink", function (ply)
+hook.Add("PlayerDeathThink", "Horde_PlayerDeathThink", function (ply) --called every think when player is dead
     --if GetConVarNumber("horde_enable_respawn") == 1 then return true end
     if HORDE.current_break_time > 0 then return true end
-    if HORDE.start_game then return false end
+    if HORDE.start_game then return true end
     return true
 end)
 
 hook.Add("DoPlayerDeath", "Horde_DoPlayerDeath", function(victim)
     net.Start("Horde_ClearStatus")
     net.Send(victim)
+	victim:SetNW2Bool( "GameLocked", true )
+	if victim.Horde_Revival_Marked == true then
+        timer.Simple(0.5, function() if victim:IsValid() then
+            victim:Spawn()
+			EmitSound( "ocpack/otheruksound/Bonus Break 1.wav", victim:GetPos() )
+        end end)
+		return
+	end
     for _, wpn in pairs(victim:GetWeapons()) do
         victim:DropWeapon(wpn)
     end
-    if (not HORDE.start_game) or (HORDE.current_break_time > 0) then
+    if (not HORDE.start_game) or (HORDE.current_break_time > 0) then--or cvars.Number("horde_enable_sandbox", 0 ) == 1
         timer.Simple(1, function() if victim:IsValid() then
             victim:Spawn()
         end end)
-        return
-    end
-    HORDE:SendNotification("You are dead. You will respawn next wave.", 1, victim)
+		return
+	end
+	
+if (HORDE.start_game) and (HORDE.current_break_time <= 0) then
+	if victim:GetNW2Bool( "GameLocked" ) == true then
+		timer.Simple(HORDE.respawncountdown, function() if victim:IsValid() then
+			victim:Spawn()
+			HORDE:SendNotification("Look alive, your enemies are closing in", 1, victim)
+			HORDE:CheckAlivePlayers()
+			Horde_GetAllLivingPlayers()
+			EmitSound( "items/suitchargeok1.wav", victim:GetPos() )
+		end end)
+	end
+	victim:SetNWFloat( "respawncountdown", HORDE.respawncountdown )
+	timer.Create( "Horde_RespawnTicking", 1, HORDE.respawncountdown, function() if victim:IsValid() then
+		victim:SetNWFloat( "respawncountdown", victim:GetNWFloat("respawncountdown") - 1 )
+	end end)
+    HORDE:SendNotification("You are dead. You will respawn in " .. HORDE.respawncountdown .. " seconds.", 1, victim)
+	
     HORDE:CheckAlivePlayers()
+
+
+    local tip = HORDE:GetTip()
+    if tip and (not HORDE.horde_boss) then
+        net.Start("Horde_SyncTip")
+        net.WriteString(HORDE:GetTip())
+        net.Send(victim)
+    end
+	
+end
 end)
+
+hook.Add("Horde_OnPlayerShouldRespawnDuringWave", "HordeRevives", function(ply) --from fucking sv_economy are you serious?
+	if ply.Horde_Revival_Marked == true then return true end
+	if ply:GetNW2Bool( "GameLocked" ) == true then return true end
+end)
+
+
+

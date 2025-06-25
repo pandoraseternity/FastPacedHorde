@@ -1,53 +1,31 @@
 -- Difficulty settings
 -- Rule: scale as difficulty/endless.
--- 0 - normal, 1 - hard, 2 - realism
+-- 1 - normal, 2 - hard, 3 - realism
 
-HORDE.difficulty = GetConVar("horde_difficulty"):GetInt() + 1
-HORDE.endless = GetConVar("horde_endless"):GetInt()
+HORDE.CurrentDifficulty = GetConVar( "horde_difficulty" ):GetInt()
+if HORDE.Difficulty[HORDE.CurrentDifficulty] == nil then
+    HORDE.CurrentDifficulty = 3
+end
+
+--HORDE.CurrentDifficulty = GetConVar( "horde_difficulty" ):GetInt() + 1
+HORDE.endless = GetConVar( "horde_endless" ):GetInt()
 HORDE.additional_pack = 0
 
 -- Difficulty Stuff
 
 local difficulty_normal = 0
 local difficulty_hard = 1
-local difficulty_realism = 2
-local difficulty_nightmare = 3
-local difficulty_apocalypse = 4
-
--- Multipliers
-local difficulty_damage_multiplier = { 1, 1.25, 1.5, 1.7, 1.9 }
-local difficulty_enemy_count_multiplier = { 1, 1.3, 1.5, 1.6, 1.7 }
-HORDE.difficulty_reward_base_multiplier = { 1, 0.8, 0.6, 0.5, 0.4 }
-HORDE.difficulty_health_multiplier = { 1, 1.25, 1.5, 1.5, 1.5 }
-local difficulty_start_money_multiplier = { 1, 0.9, 0.8, 0.75, 0.6 }
-local difficulty_spawn_radiuis_multiplier = { 1, 0.75, 0.5, 0.5, 0.4 }
-local difficulty_max_enemies_alive_scale_factor = { 1, 1.15, 1.25, 1.25, 1.3 }
-local difficulty_poison_headcrab_damage = { 50, 60, 75, 75, 75 }
-HORDE.difficulty_status_duration_bonus = { 0, 1, 2, 3, 4 }
-HORDE.difficulty_break_health_left = { 0.20, 0.15, 0.10, 0.10, 0.05 }
-HORDE.difficulty_shock_damage_increase = { 0.15, 0.20, 0.25, 0.25, 0.30 }
-HORDE.difficulty_frostbite_slow = { 0.40, 0.45, 0.50, 0.50, 0.55 }
-
--- Flat modifiers
-HORDE.difficulty_elite_health_scale_add = { 0.025, 0.05, 0.075, 0.100, 0.125 }
-HORDE.difficulty_elite_health_scale_multiplier = { 1, 1, 1, 1.1, 1.2 }
-HORDE.difficulty_additional_pack = { 0, 1, 2, 2, 3 }
-HORDE.difficulty_additional_ammoboxes = { 2, 1, 0, 0, 0 }
 
 -- Endless stuff
 HORDE.endless_health_multiplier = 1
 HORDE.endless_damage_multiplier = 1
-
--- Mutation
-HORDE.difficulty_mutation_probability = { 0, 0.05, 0.10, 0.20, 0.30 }
-HORDE.difficulty_elite_mutation_probability = { 0, 0.05, 0.10, 0.30, 0.40 }
 
 -- Hook settings
 -- Damage scaling/handling
 -- Turrets should not be one-shot
 function VJ_DestroyCombineTurret() end
 
-hook.Add("EntityTakeDamage", "Horde_EntityTakeDamage", function(target, dmg)
+hook.Add("EntityTakeDamage", "Horde_EntityTakeDamage", function (target, dmg)
     if not target:IsValid() then return end
     if target:IsPlayer() then
         if dmg:GetAttacker():IsNPC() then
@@ -57,13 +35,14 @@ hook.Add("EntityTakeDamage", "Horde_EntityTakeDamage", function(target, dmg)
             end
             if dmg:IsDamageType(DMG_CRUSH) then
                 -- Cap bullshit physics damage that can sometimes occur
-                dmg:SetDamage(math.min(dmg:GetDamage(), 20))
+                dmg:SetDamage(math.min(dmg:GetDamage(),20))
             end
 
+            local dmgMult = HORDE.Difficulty[HORDE.CurrentDifficulty].damageMultiplier
             if HORDE.endless == 1 then
-                dmg:ScaleDamage(difficulty_damage_multiplier[HORDE.difficulty] * HORDE.endless_damage_multiplier)
+                dmg:ScaleDamage(dmgMult * HORDE.endless_damage_multiplier)
             else
-                dmg:ScaleDamage(difficulty_damage_multiplier[HORDE.difficulty])
+                dmg:ScaleDamage(dmgMult)
             end
 
             if dmg:GetAttacker():GetVar("damage_scale") then
@@ -81,21 +60,22 @@ hook.Add("EntityTakeDamage", "Horde_EntityTakeDamage", function(target, dmg)
             return true
         else
             if dmg:GetAttacker():GetClass() == "npc_headcrab_poison" then
-                dmg:SetDamage(math.min(dmg:GetDamage(), difficulty_poison_headcrab_damage[HORDE.difficulty]))
+                dmg:SetDamage( math.min( dmg:GetDamage(), HORDE.Difficulty[HORDE.CurrentDifficulty].poisonHeadcrabDamage ) )
             end
 
             if target:GetClass() == "npc_turret_floor" then
-                dmg:SetDamageForce(Vector(0, 0, 0))
+                dmg:SetDamageForce(Vector(0,0,0))
                 target:SetHealth(target:Health() - dmg:GetDamage())
                 if target:Health() <= 0 then
                     target:Fire("selfdestruct")
                 end
             end
 
+            local dmgMult = HORDE.Difficulty[HORDE.CurrentDifficulty].damageMultiplier
             if HORDE.endless == 1 then
-                dmg:ScaleDamage(difficulty_damage_multiplier[HORDE.difficulty] * HORDE.endless_damage_multiplier)
+                dmg:ScaleDamage(dmgMult * HORDE.endless_damage_multiplier)
             else
-                dmg:ScaleDamage(difficulty_damage_multiplier[HORDE.difficulty])
+                dmg:ScaleDamage(dmgMult)
             end
 
             if dmg:GetAttacker():GetVar("damage_scale") then
@@ -118,15 +98,15 @@ end)
 
 -- Fall damage handling
 hook.Add("GetFallDamage", "RealisticDamage", function(ply, speed)
-    local bonus = { less = 1 }
+    local bonus = {less = 1}
     local dmg = 0
-    if HORDE.difficulty == difficulty_normal then
-        dmg = 10
-    elseif HORDE.difficulty == difficulty_hard then
-        dmg = math.max(0, math.ceil(0.2418 * speed - 141.75)) / 2
+    if HORDE.CurrentDifficulty == difficulty_normal then
+        dmg = 0
+    elseif HORDE.CurrentDifficulty == difficulty_hard then
+        dmg = 0
     else
         -- css fall damage
-        dmg = math.max(0, math.ceil(0.2418 * speed - 141.75))
+        dmg = 0
     end
 
     hook.Run("Horde_GetFallDamage", ply, speed, bonus)
@@ -136,18 +116,15 @@ end)
 -- Non-hook settings
 -- Wave count scaling
 for i, enemies_count in ipairs(HORDE.total_enemies_per_wave) do
-    HORDE.total_enemies_per_wave[i] = math.floor(enemies_count * difficulty_enemy_count_multiplier[HORDE.difficulty])
+    HORDE.total_enemies_per_wave[i] = math.floor(enemies_count * HORDE.Difficulty[HORDE.CurrentDifficulty].enemyCountMultiplier)
 end
 
 -- Kill reward scaling
-HORDE.kill_reward_base = math.floor(HORDE.kill_reward_base * HORDE.difficulty_reward_base_multiplier[HORDE.difficulty])
-HORDE.round_bonus_base = math.floor(HORDE.round_bonus_base * HORDE.difficulty_reward_base_multiplier[HORDE.difficulty])
+HORDE.kill_reward_base = math.floor(HORDE.kill_reward_base * HORDE.Difficulty[HORDE.CurrentDifficulty].rewardMultiplier)
+HORDE.round_bonus_base = math.floor(HORDE.round_bonus_base * HORDE.Difficulty[HORDE.CurrentDifficulty].rewardMultiplier)
 
 -- Start money scaling
-HORDE.start_money = math.floor(HORDE.start_money * difficulty_start_money_multiplier[HORDE.difficulty])
+HORDE.start_money = math.floor(HORDE.start_money * HORDE.Difficulty[HORDE.CurrentDifficulty].startMoneyMultiplier)
 
 -- Spawn density scaling
-HORDE.spawn_radius = math.floor(HORDE.spawn_radius * difficulty_spawn_radiuis_multiplier[HORDE.difficulty])
-
--- Maximum enemies alive scaling
-HORDE.difficulty_max_enemies_alive_scale_factor = difficulty_max_enemies_alive_scale_factor[HORDE.difficulty]
+HORDE.spawn_radius = math.floor(HORDE.spawn_radius * HORDE.Difficulty[HORDE.CurrentDifficulty].spawnRadiusMultiplier)

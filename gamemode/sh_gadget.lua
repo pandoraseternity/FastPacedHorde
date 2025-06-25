@@ -2,8 +2,6 @@ if SERVER then
 util.AddNetworkString("Horde_Gadget")
 util.AddNetworkString("Horde_GadgetStartCooldown")
 util.AddNetworkString("Horde_GadgetChargesUpdate")
-util.AddNetworkString("Horde_GadgetCooldownCheck")
-util.AddNetworkString("Horde_Special_Upgrades")
 end
 
 HORDE.gadgets = HORDE.gadgets or {}
@@ -20,19 +18,6 @@ if CLIENT then
             ply:Horde_UnsetGadget()
         end
     end)
-    -------Experimental-------------------------------
-    net.Receive("Horde_Special_Upgrades", function()
-        local mode = net.ReadUInt(HORDE.NET_PERK_BITS)
-        local ply = net.ReadEntity()
-        local upgrade = net.ReadString()
-        if not ply:IsValid() then return end
-        if mode == HORDE.NET_PERK_SET then
-            ply:Horde_SetSpecialUpgrade(upgrade)
-        elseif mode == HORDE.NET_PERK_UNSET then
-            ply:Horde_UnsetSpecialUpgrade(upgrade)
-        end
-    end)
-    -------------------------------------------------
 end
 
 local plymeta = FindMetaTable("Player")
@@ -55,11 +40,6 @@ end
 
 function plymeta:Horde_SetGadgetCooldown(cd)
     self.Horde_GadgetCooldown = cd
-    if SERVER then
-        net.Start("Horde_GadgetCooldownCheck")
-            net.WriteInt(cd, 8)
-        net.Send(self)
-    end
 end
 
 function plymeta:Horde_SetGadgetInternalCooldown(cd)
@@ -90,56 +70,6 @@ end
 function plymeta:Horde_GetGadget()
     return self.Horde_Gadget
 end
-
-function plymeta:Horde_GetSpamGadgetCooldown()
-    return self.Horde_SpamGadgetCooldown or 0
-end
-
-function plymeta:Horde_SetSpamGadgetCooldown(cd)
-    self.Horde_SpamGadgetCooldown = cd
-end
-
--- Dank Special Upgrade stuff for shop ui ------------------------------------------------------
-function plymeta:Horde_SetSpecialUpgrade(upgrade)
-    if not self.Horde_Special_Upgrades then
-        self.Horde_Special_Upgrades = {}
-    end
-    
-    self.Horde_Special_Upgrades[upgrade] = true
-    sound.Play("items/suitchargeok1.wav", self:GetPos())
-    if SERVER then
-        local item = HORDE.items[upgrade]
-        if item then
-            self:Horde_AddWeight(-item.weight)
-        end
-        
-        net.Start("Horde_Special_Upgrades")
-            net.WriteUInt(HORDE.NET_PERK_SET, HORDE.NET_PERK_BITS)
-            net.WriteEntity(self)
-            net.WriteString(upgrade)
-        net.Broadcast()
-    end
-end
-
-function plymeta:Horde_UnsetSpecialUpgrade(upgrade)
-    if self.Horde_Special_Upgrades[upgrade] == nil then return end
-    
-    if SERVER then
-        local item = HORDE.items[upgrade]
-        if item  and self.Horde_Special_Upgrades[upgrade] then
-            self:Horde_AddWeight(item.weight)
-            self:Horde_AddMoney(math.floor(0.75 * item.price))
-        end
-        
-        net.Start("Horde_Special_Upgrades")
-            net.WriteUInt(HORDE.NET_PERK_UNSET, HORDE.NET_PERK_BITS)
-            net.WriteEntity(self)
-            net.WriteString(upgrade)
-        net.Broadcast()
-    end
-    self.Horde_Special_Upgrades[upgrade] = nil
-end
---------------------------------------------------------------------------------------
 
 function plymeta:Horde_SetGadget(gadget)
     if not HORDE.gadgets[gadget] then error("Tried to use nonexistent gadget '" .. gadget .. "' in Horde_SetGadget!") return end
@@ -175,9 +105,7 @@ function plymeta:Horde_UnsetGadget()
         if item then
             self:Horde_AddWeight(item.weight)
         end
-        if not self.has_used_consumable_gadget then
-            self:Horde_AddMoney(math.floor(0.75 * item.price))
-        end
+		self:Horde_AddMoney(math.floor(0.75 * item.price))
     end
     hook.Run("Horde_OnUnsetGadget", self, self.Horde_Gadget)
     if SERVER then
@@ -224,30 +152,15 @@ hook.Add("PlayerButtonDown", "Horde_UseKey", function(ply, key)
 end)
 
 if SERVER then
-    local think_t = 0.5
-    local BufferTime = 0.5 -- +-0.25s
-    function HORDE:UseGadget(ply, auto)
-        if ply:Horde_GetGadget() and HORDE.gadgets[ply:Horde_GetGadget()] and HORDE.gadgets[ply:Horde_GetGadget()].Active and ply:Horde_GetSpamGadgetCooldown() <= CurTime() and ply:Alive() then
-            local cd = ply:Horde_GetGadgetInternalCooldown()
-            if(cd > 0 && !auto) then
-                if(cd <= BufferTime) then
-                    ply.QueuedGadget = true
-                end
-                return
-            end
-            local res = hook.Run("Horde_UseActiveGadget", ply)
-            if res then return end
+    function HORDE:UseGadget(ply)
+        if ply:Horde_GetGadget() and HORDE.gadgets[ply:Horde_GetGadget()] and HORDE.gadgets[ply:Horde_GetGadget()].Active and ply:Horde_GetGadgetInternalCooldown() <= 0 and ply:Alive() then
+            hook.Run("Horde_UseActiveGadget", ply)
             ply:Horde_SetGadgetInternalCooldown(ply:Horde_GetGadgetCooldown())
-            ply:Horde_SetGadgetNextThink(CurTime() + think_t)
             net.Start("Horde_GadgetStartCooldown")
                 net.WriteUInt(ply:Horde_GetGadgetCooldown(), 8)
             net.Send(ply)
 
             if HORDE.gadgets[ply:Horde_GetGadget()].Once then
-                ply.has_used_consumable_gadget = true
-                timer.Simple(0, function ()
-                    ply.has_used_consumable_gadget = nil
-                end)
                 ply:Horde_UnsetGadget()
                 ply:Horde_SyncEconomy()
             end
@@ -256,21 +169,9 @@ if SERVER then
 
     hook.Add("PlayerPostThink", "Horde_GadgetCooldown", function(ply)
         if CurTime() >= ply:Horde_GetGadgetNextThink() then
-            ply:Horde_SetGadgetNextThink(CurTime() + think_t)
-            local cd = ply:Horde_GetGadgetInternalCooldown()
-            local newcd = cd - think_t
-            if(newcd <= 0) then
-                if(ply.QueuedGadget) then
-                    newcd = 0
-                    HORDE:UseGadget(ply, true)
-                    ply.QueuedGadget = false
-                    return
-                end
-            end
-            if(cd <= 0) then
-                return
-            end
-            ply:Horde_SetGadgetInternalCooldown(newcd)
+            if ply:Horde_GetGadgetInternalCooldown() <= 0 then return end
+            ply:Horde_SetGadgetInternalCooldown(ply:Horde_GetGadgetInternalCooldown() - 1)
+            ply:Horde_SetGadgetNextThink(CurTime() + 1)
         end
     end)
 end

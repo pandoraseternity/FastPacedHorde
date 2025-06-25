@@ -81,7 +81,9 @@ function plymeta:Horde_SetSpell(spell_name)
         self:Horde_GetSpellWeapon():Horde_SetSpell(spell_name)
     end
     if SERVER then
+		if self:Horde_GetSpellWeapon() then
         self:Horde_GetSpellWeapon():Horde_SetSpell(spell_name)
+		end
         net.Start("Horde_SetSpell")
             net.WriteString(spell_name)
         net.Send(self)

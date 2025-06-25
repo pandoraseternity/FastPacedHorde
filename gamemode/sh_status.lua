@@ -2,7 +2,7 @@
 -- Please use the variable names instead of the values!
 
 if SERVER then
-    util.AddNetworkString("Horde_SyncActivePerk")
+util.AddNetworkString("Horde_SyncActivePerk")
 end
 
 HORDE.Status_Icon = {}
@@ -40,13 +40,13 @@ HORDE:RegisterStatus("HasPayload", "materials/status/objective.png")
 HORDE:RegisterStatus("AntimatterShield", "materials/perks/antimatter_shield.png", nil, nil, true)
 HORDE:RegisterStatus("Displacer", "materials/perks/displacer.png", nil, nil, true)
 HORDE:RegisterStatus("Quickstep", "materials/abilities/quickstep.png", nil, nil, true)
+HORDE:RegisterStatus("Needles", "materials/status/hp.png", nil, nil, true)
 HORDE:RegisterStatus("Hunter_Mark", "materials/status/hunter_mark.png", nil, nil, true)
 HORDE:RegisterStatus("Smokescreen", "materials/perks/specops/smokescreen.png", nil, nil, true)
 HORDE:RegisterStatus("Flare", "materials/perks/specops/flare.png", nil, nil, true)
 HORDE:RegisterStatus("AAS_Perfume", "materials/perks/carcass/AAS_Perfume.png", nil, nil, true)
 HORDE:RegisterStatus("Juxtapose", "materials/perks/overlord/juxtapose.png", nil, nil, true)
 HORDE:RegisterStatus("DarkEnergyBlast", "materials/perks/overlord/dark_energy_blast.png", nil, nil, true)
-HORDE:RegisterStatus("Steadfast_Parry", "materials/perks/bushido.png", nil, nil, true)
 
 HORDE:RegisterStatus("Tactical_Mode", "materials/status/tactical_mode.png")
 HORDE:RegisterStatus("Camoflague", "materials/status/camoflague.png")
@@ -65,7 +65,6 @@ HORDE:RegisterStatus("Hypertrophy", "materials/status/hypertrophy.png", true)
 HORDE:RegisterStatus("SolarFlux", "materials/perks/artificer/solar_flux.png", true)
 HORDE:RegisterStatus("Bio_Thruster", "materials/perks/carcass/bio_thruster.png", true)
 HORDE:RegisterStatus("Twin_Heart", "materials/perks/carcass/twin_heart.png", true)
-HORDE:RegisterStatus("Hysteria", "materials/perks/overlord/despair.png", true)
 
 HORDE:RegisterStatus("Fortify", "materials/perks/fortify.png")
 HORDE:RegisterStatus("Berserk", "materials/perks/berserk.png")
@@ -92,6 +91,7 @@ HORDE:RegisterStatus("Damage_Shard", "materials/status/damage.png")
 HORDE:RegisterStatus("Agility_Shard", "materials/status/speed.png")
 HORDE:RegisterStatus("Assassin_Optics", "materials/status/gadget/assassin_optics.png")
 HORDE:RegisterStatus("Aegis", "materials/status/gadget/aegis.png")
+HORDE:RegisterStatus("Defiance", "materials/status/gadget/defiance.png")
 
 HORDE:RegisterStatus("Armor_Survivor", "items/armor_survivor.png")
 HORDE:RegisterStatus("Armor_Assault", "items/armor_assault.png")
@@ -134,7 +134,7 @@ HORDE.Status_Trigger_Sounds[HORDE.Status_Bleeding] = "horde/status/bleeding_trig
 HORDE.Status_Trigger_Sounds[HORDE.Status_Frostbite] = "horde/status/frostbite_trigger.ogg"
 HORDE.Status_Trigger_Sounds[HORDE.Status_Shock] = "horde/status/shock_trigger.ogg"
 HORDE.Status_Trigger_Sounds[HORDE.Status_Break] = "horde/status/break_trigger.ogg"
-HORDE.Status_Trigger_Sounds[HORDE.Status_Necrosis] = "" --"horde/status/necrosis_trigger.ogg"
+HORDE.Status_Trigger_Sounds[HORDE.Status_Necrosis] = "horde/status/necrosis_trigger.ogg"
 
 HORDE.Debuff_Notifications = {
     [HORDE.Status_Bleeding] = "You are inflicted by Bleeding.\nYour health is removed over time.",
@@ -150,8 +150,8 @@ HORDE.Debuff_Notifications = {
 local plymeta = FindMetaTable("Player")
 function plymeta:Horde_SyncStatus(status, stack)
     net.Start("Horde_SyncStatus")
-    net.WriteUInt(status, 8)
-    net.WriteUInt(stack, 8)
+        net.WriteUInt(status, 8)
+        net.WriteUInt(stack, 8)
     net.Send(self)
 end
 
@@ -169,4 +169,5 @@ end
 
 function HORDE:IsStackableSkillStatus(status)
     if status == HORDE.Status_Quickstep then return true end
+	if status == HORDE.Status_Needles then return true end
 end

@@ -2,6 +2,7 @@ include("shared.lua")
 include("sh_particles.lua")
 include("sh_translate.lua")
 include("sh_horde.lua")
+include("sh_difficulty.lua")
 include("sh_gadget.lua")
 include("sh_status.lua")
 include("sh_damage.lua")
@@ -18,9 +19,9 @@ include("sh_sync.lua")
 include("sh_misc.lua")
 include("sh_objective.lua")
 include("sh_spells.lua")
-include("sh_attachments.lua")
 
 include("cl_economy.lua")
+include("cl_extras.lua")
 include("cl_achievement.lua")
 include("cl_hitnumbers.lua")
 include("gui/cl_gameinfo.lua")
@@ -46,7 +47,6 @@ include("gui/cl_3d2d.lua")
 include("gui/cl_subclassbutton.lua")
 include("gui/cl_perkbutton.lua")
 include("gui/cl_leaderboard.lua")
-include("gui/cl_arccwcustomize.lua")
 
 include("status/sh_mind.lua")
 include("gui/scoreboard/dpingmeter.lua")
@@ -59,29 +59,10 @@ include("arccw/attachments/horde_akimbo_glock.lua")
 include("arccw/attachments/horde_ubgl_medic.lua")
 include("arccw/attachments/horde_ammo_ap.lua")
 include("arccw/attachments/horde_ammo_sabot.lua")
-include("arccw/attachments/horde_ubgl_m203.lua")
-
---include("arccw/attachments/horde_go_perk_burst_fire.lua")
---include("arccw/attachments/horde_go_perk_agile_maneuver.lua")
---include("arccw/attachments/horde_go_perk_auto_reload.lua")
-
---Shotgun ammo attachments--
-include("arccw/attachments/horde_go_ammo_sg_triple.lua")
-include("arccw/attachments/horde_go_ammo_sg_sabot.lua")
-include("arccw/attachments/horde_go_ammo_sg_slug.lua")
-include("arccw/attachments/horde_go_ammo_sg_scatter.lua")
-include("arccw/attachments/horde_go_ammo_sg_magnum.lua")
-
-include("arccw/attachments/horde_go_nova_mag_8.lua")
-include("arccw/attachments/horde_go_mag7_mag_3.lua")
-include("arccw/attachments/horde_go_mag7_mag_7.lua")
-include("arccw/attachments/horde_go_870_mag_4.lua")
-include("arccw/attachments/horde_go_870_mag_8.lua")
-include("arccw/attachments/horde_go_m1014_mag_4.lua")
-include("arccw/attachments/horde_go_m1014_mag_8.lua")
+include("arccw/attachments/uc_ubgl_medic.lua")
 
 -- Some users report severe lag with halo
-CreateConVar("horde_enable_halo", 1, FCVAR_ARCHIVE + FCVAR_LUA_CLIENT, "Enables highlight for last 10 enemies.")
+CreateConVar("horde_enable_halo", 1, FCVAR_LUA_CLIENT, "Enables highlight for last 10 enemies.")
 
 MySelf = MySelf or NULL
 hook.Add("InitPostEntity", "GetLocal", function()
@@ -91,6 +72,13 @@ hook.Add("InitPostEntity", "GetLocal", function()
     gamemode.Call("HookGetLocal", MySelf)
     RunConsoleCommand("initpostentity")
 end)
+
+hook.Add( "HUDPaint", "Horde_RespawnCountdown", function()
+    if LocalPlayer():Alive() == false && LocalPlayer():GetNW2Bool( "GameLocked" ) == true then
+	draw.DrawText("You will respawn in " .. LocalPlayer():GetNWFloat( "respawncountdown" , 0 ) .. " seconds", "CloseCaption_Bold", ScrW() * 0.5, ScrH() * 0.5, Color( 255, 255, 255, 255 ), TEXT_ALIGN_CENTER)
+	end
+end )
+
 
 function HORDE:ToggleShop()
     if MySelf:Horde_GetCurrentSubclass() == "Necromancer" or MySelf:Horde_GetCurrentSubclass() == "Artificer" or MySelf:Horde_GetCurrentSubclass() == "Warlock" then
@@ -235,7 +223,7 @@ end
 -- Entity Highlights
 HORDE.Player_Looking_At_Minion = nil
 if GetConVarNumber("horde_enable_halo") == 1 then
-    hook.Add("PreDrawHalos", "Horde_AddMinionHalos", function()
+hook.Add("PreDrawHalos", "Horde_AddMinionHalos", function()
         local ent = util.TraceLine(util.GetPlayerTrace(MySelf)).Entity
         if ent and ent:IsValid() then
             if ent:GetNWEntity("HordeOwner") and ent:GetNWEntity("HordeOwner") == MySelf then
@@ -261,12 +249,12 @@ net.Receive("Horde_HighlightEntities", function (len, ply)
                     enemies[key] = nil
                 end
             end
-            halo.Add(enemies, Color(255, 0, 0), 1, 1, 1, true, true)
+            halo.Add(enemies, Color(255, 0, 0), 2, 2, 1, true, true)
         end)
     elseif render == HORDE.render_highlight_ammoboxes then
         hook.Add("PreDrawHalos", "Horde_AddAmmoBoxHalos", function()
-            halo.Add(ents.FindByClass("horde_ammobox"), Color(0, 255, 0), 1, 1, 1, true, true)
-            halo.Add(ents.FindByClass("horde_gadgetbox"), Color(255, 0, 0), 1, 1, 1, true, true)
+            halo.Add(ents.FindByClass("horde_ammobox"), Color(0, 255, 0), 2, 2, 1, true, true)
+            halo.Add(ents.FindByClass("horde_gadgetbox"), Color(255, 0, 0), 2, 2, 1, true, true)
         end)
         timer.Simple(10, function ()
             hook.Remove("PreDrawHalos", "Horde_AddAmmoBoxHalos")
@@ -405,6 +393,24 @@ net.Receive("Horde_ToggleStats", function ()
     HORDE:ToggleStats()
 end)
 
+net.Receive("Horde_BossMusicNet", function()
+	if GetConVar("horde_enable_music"):GetInt() != 1 then return end
+	local bossmusic = net.ReadString()
+	local endmusic = net.ReadBool()
+	sound.PlayFile(bossmusic, "", function(station, errCode, errStr)
+		if(!IsValid(station)) then print( "not playing sound!" ) return end
+		--station:EnableLooping( true )
+		station:Play()
+	end)
+	if endmusic == true then
+	sound.PlayFile(bossmusic, "", function(station, errCode, errStr)
+		if(!IsValid(station)) then print( "not stopping sound!" ) return end
+		--station:EnableLooping( false )
+		station:SetVolume( 0 )
+	end)
+	end
+end)
+
 net.Receive("Horde_ForceCloseShop", function ()
     if HORDE.ShopGUI then
         if HORDE.ShopGUI:IsVisible() then
@@ -467,7 +473,7 @@ net.Receive("Horde_SyncEnemies", function ()
 end)
 
 net.Receive("Horde_SyncDifficulty", function ()
-    HORDE.difficulty = net.ReadUInt(3)
+    HORDE.CurrentDifficulty = net.ReadUInt(4)
 end)
 
 net.Receive("Horde_SyncMaps", function ()
@@ -524,3 +530,6 @@ killicon.Add("arccw_nade_medic", "arccw/weaponicons/arccw_nade_medic", Color(0, 
 killicon.Add("npc_turret_floor", "vgui/hud/npc_turret_floor", Color(0, 0, 0, 255))
 killicon.AddAlias("npc_vj_horde_shotgun_turret", "npc_turret_floor")
 killicon.AddAlias("npc_vj_horde_sniper_turret", "npc_turret_floor")
+killicon.Add("npc_vj_horde_antlion", "vgui/hud/antlion", Color(0, 0, 0, 255))
+killicon.AddAlias("projectile_horde_antlion_bile", "npc_vj_horde_antlion")
+

@@ -56,6 +56,46 @@ function HORDE:Start(ply)
     end
 end
 
+--Skip trader time--
+function HORDE:SkipTraderTime(ply)
+    if HORDE.current_wave <= 0 then return end
+    if not HORDE:InBreak() then 
+        HORDE:SendNotification(translate.Get("Game_F4_CannotSkip"), 1, ply)
+        return
+    end
+    if HORDE.current_break_time <= 10 then
+        HORDE:SendNotification(translate.Get("Game_F4_Starting"), 1, ply)
+        return
+    end
+    if HORDE.player_ready[ply] == 1 then
+        HORDE:SendNotification(translate.Get("Game_F4_Readied"), 1, ply)
+        return
+    end
+    if not ply:Alive() then
+        HORDE:SendNotification("You can't dab when you are dead!", 1, ply)
+        return
+    end
+    
+    
+    HORDE.player_ready[ply] = 1
+    local skip_count = 0
+    local total_player = 0
+    for _, skip_ply in pairs(player.GetAll()) do
+        if HORDE.player_ready[skip_ply] == 1 then
+            skip_count = skip_count + 1
+        end
+        total_player = total_player + 1
+    end
+    
+    if skip_count >= total_player then
+        HORDE.Skip_Wave_Timer = true
+    end
+
+    net.Start("Horde_PlayerReadySync")
+        net.WriteTable(HORDE.player_ready)
+    net.Broadcast()
+end
+
 function HORDE:Ready(ply)
     if HORDE.current_wave > 0 then HORDE:SkipTraderTime(ply) return end
     if HORDE.current_break_time <= 10 then
@@ -105,45 +145,7 @@ function HORDE:Ready(ply)
     HORDE:BroadcastPlayersReadyMessage(tostring(ready_count) .. "/" .. tostring(total_player))
 end
 
---Skip trader time--
-function HORDE:SkipTraderTime(ply)
-    if HORDE.current_wave <= 0 then return end
-    if not HORDE:InBreak() then 
-        HORDE:SendNotification(translate.Get("Game_F4_CannotSkip"), 1, ply)
-        return
-    end
-    if HORDE.current_break_time <= 10 then
-        HORDE:SendNotification(translate.Get("Game_F4_Starting"), 1, ply)
-        return
-    end
-    if HORDE.player_ready[ply] == 1 then
-        HORDE:SendNotification(translate.Get("Game_F4_Readied"), 1, ply)
-        return
-    end
-    if not ply:Alive() then
-        HORDE:SendNotification("You can't dab when you are dead!", 1, ply)
-        return
-    end
-    
-    
-    HORDE.player_ready[ply] = 1
-    local skip_count = 0
-    local total_player = 0
-    for _, skip_ply in pairs(player.GetAll()) do
-        if HORDE.player_ready[skip_ply] == 1 then
-            skip_count = skip_count + 1
-        end
-        total_player = total_player + 1
-    end
-    
-    if skip_count >= total_player then
-        HORDE.Skip_Wave_Timer = true
-    end
 
-    net.Start("Horde_PlayerReadySync")
-        net.WriteTable(HORDE.player_ready)
-    net.Broadcast()
-end
 
 function HORDE:End(ply)
     if not ply:IsAdmin() then
@@ -176,11 +178,6 @@ function HORDE:Shop(ply)
     ply:Horde_RecalcWeight()
     net.Start("Horde_ToggleShop")
     net.Send(ply)
-    for _, wpn in pairs(ply:GetWeapons()) do
-        if wpn.IsHordeMelee then
-            wpn:SetNWFloat("HORDE_Durability", wpn.MaximumDurability)
-        end
-    end
 end
 
 function HORDE:ItemConfig(ply)
@@ -287,10 +284,15 @@ hook.Add("PlayerSay", "Horde_Commands", function(ply, input, public)
     elseif text[1] == "!mapconfig" then
         HORDE:MapConfig(ply)
     elseif text[1] == "!drop" then
-        ply:ConCommand("horde_drop_weapon")
+        if ply:GetActiveWeapon() and ply:GetActiveWeapon():IsValid() and ply:GetActiveWeapon().Base == "horde_spell_weapon_base" then
+            return
+        end
+		ply:GetActiveWeapon().newlyGainedWep = false
+		ply:GetActiveWeapon().lastWeaponHolder = nil
+        ply:DropWeapon()
     elseif text[1] == "!throwmoney" then
         ply:Horde_DropMoney(text[2])
-    elseif text[1] == "!rtv" then
+    elseif text[1] == "!rtv" and not _G.MapVote then
         HORDE.VoteChangeMap(ply)
     elseif text[1] == "!stats" then
         HORDE:StatsMenu(ply)
@@ -298,6 +300,8 @@ hook.Add("PlayerSay", "Horde_Commands", function(ply, input, public)
         HORDE:SyncToLocal(ply)
     elseif text == "!sync_to_server" then
         HORDE:SyncToServer(ply)]]--
+    elseif text[1] == "!pay" then
+        ply:Horde_PayPlayer(text[2], text[3])
     end
 end)
 
@@ -516,7 +520,7 @@ concommand.Add("horde_testing_spawn_enemy", function (ply, cmd, args)
         spawned_enemy:SetMaxHealth(spawned_enemy:GetMaxHealth() * HORDE.endless_health_multiplier)
     end
 
-    spawned_enemy:SetMaxHealth(spawned_enemy:GetMaxHealth() * HORDE.difficulty_health_multiplier[HORDE.difficulty])
+    spawned_enemy:SetMaxHealth(spawned_enemy:GetMaxHealth() * HORDE.Difficulty[HORDE.CurrentDifficulty].healthMultiplier)
 
     spawned_enemy:SetHealth(spawned_enemy:GetMaxHealth())
 
@@ -564,8 +568,4 @@ concommand.Add("horde_testing_spawn_enemy", function (ply, cmd, args)
     if args[4] then
         timer.Simple(0.1, function() spawned_enemy:Horde_SetMutation(args[4]) end)
     end
-end)
-
-hook.Add( "OnDamagedByExplosion", "HordeDisableTinnitus", function()
-    return true
 end)

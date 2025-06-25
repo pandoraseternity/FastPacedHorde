@@ -19,3 +19,7 @@ end)
 hook.Add("HordeBossSpawn", "Horde_BossSpawn", function (enemy)
     return
 end)
+
+hook.Add( "OnDamagedByExplosion", "telephonering", function()
+    return true
+end)
