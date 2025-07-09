@@ -1,0 +1,8 @@
+"UnlitGeneric"
+{
+	"$basetexture"	"effects/softglow_nonadditive"
+	"$surfaceprop"	"no_decal"
+	"$additive"	0
+	"$vertexcolor"	1
+	"$vertexalpha"	1
+}

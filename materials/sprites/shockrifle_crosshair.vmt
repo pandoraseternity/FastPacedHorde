@@ -1,0 +1,6 @@
+"UnlitGeneric"
+{
+"$basetexture" "hlof\sprites\shockrifle_crosshair"
+"$translucent" "1"
+"$additive" "1"
+}

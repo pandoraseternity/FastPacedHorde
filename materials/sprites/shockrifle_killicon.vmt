@@ -1,0 +1,7 @@
+"UnlitGeneric"
+{
+"$basetexture" "hlof\sprites\shockrifle_killicon"
+"$color" "{0 255 0}"
+"$translucent" "1"
+"$additive" "1"
+}
