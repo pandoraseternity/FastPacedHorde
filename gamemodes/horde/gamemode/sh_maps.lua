@@ -47,7 +47,7 @@ function HORDE:SetMapBlacklist()
         file.CreateDir("horde")
     end
 
-    file.Write("horde/map_blacklist.txt", util.TableToJSON(HORDE.map_whitelist))
+    file.Write("horde/map_blacklist.txt", util.TableToJSON(HORDE.map_blacklist))
 end
 
 function HORDE:GetMapWhitelist()
