@@ -393,23 +393,43 @@ net.Receive("Horde_ToggleStats", function ()
     HORDE:ToggleStats()
 end)
 
+Horde_MusicWaitingLine = {}
 net.Receive("Horde_BossMusicNet", function()
 	if GetConVar("horde_enable_music"):GetInt() != 1 then return end
-	local bossmusic = net.ReadString()
+	local music = net.ReadString()
 	local endmusic = net.ReadBool()
-	sound.PlayFile(bossmusic, "", function(station, errCode, errStr)
-		if(!IsValid(station)) then print( "not playing sound!" ) return end
-		--station:EnableLooping( true )
-		station:Play()
+
+	sound.PlayFile("sound/" .. music, "noplay", function(station, errCode, errStr)
+		if ( IsValid( station ) ) then
+			station:EnableLooping( true )
+			station:Play()
+			station:SetPlaybackRate( 1 )
+			table.insert(Horde_MusicWaitingLine, {ent, station})
+		else
+			print( "Error playing sound!", errCode, errStr )
+		end
 	end)
-	if endmusic == true then
-	sound.PlayFile(bossmusic, "", function(station, errCode, errStr)
-		if(!IsValid(station)) then print( "not stopping sound!" ) return end
-		--station:EnableLooping( false )
-		station:SetVolume( 0 )
-	end)
-	end
+	
+	--timer.Create( "MusicThink", 1, 0, function() )
+		--if ent:
+	--end)
+	
 end)
+
+/*net.Receive("Horde_BossMusicEnd", function()
+	if GetConVar("horde_enable_music"):GetInt() != 1 then return end
+	local music = net.ReadString()
+	local endmusic = net.ReadBool()
+	
+	if endmusic == true then
+		for k, v in pairs(Horde_MusicWaitingLine) do
+			table_remove(Horde_MusicWaitingLine, k)
+		end
+		station:Stop()
+		station = nil
+	end
+	
+end)*/
 
 net.Receive("Horde_ForceCloseShop", function ()
     if HORDE.ShopGUI then
@@ -523,6 +543,147 @@ net.Receive("Horde_GameEnd", function ()
     local end_gui = vgui.Create("HordeSummaryPanel")
     end_gui:SetData(status, mvp, mvp_damage, mvp_kills, damage_player, most_damage, kills_player, most_kills, most_heal_player, most_heal, headshot_player, most_headshots, elite_kill_player, most_elite_kills, damage_taken_player, most_damage_taken, total_damage, maps)
 end)
+
+hook.Add( "HUDPaint", "HordeReminder", function( )
+	draw.SimpleText("F6 - Settings", "TargetID", ScrW() * 0.03, ScrH() * 0.35, Color(155, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+end)
+
+net.Receive("Horde_ToggleSettings", function ()
+    HORDE:ToggleSettings()
+end)
+
+function HORDE:ToggleSettings()
+local frame = vgui.Create( "DFrame" )
+frame:SetSize( 530, 550 )
+frame:SetTitle( "" )
+frame:Center()
+frame:MakePopup() 
+frame.Paint = function( self, w, h ) -- 'function Frame:Paint( w, h )' works too
+	draw.RoundedBox( 0, 0, 0, w, h, Color( 105, 105, 105, 150) ) -- Draw a red box instead of the frame
+	draw.SimpleText("Settings", "Trebuchet18", 250, 5, color_white, TEXT_ALIGN_CENTER, TEXT_ALIGN_TOP)
+end
+
+local DScrollPanel = vgui.Create( "DScrollPanel", frame )
+DScrollPanel:Dock( FILL )
+
+local DButton = DScrollPanel:Add( "DColorButton" )
+DButton:SetFont( "Trebuchet18" )
+DButton:SetText( "Reset all Keybinds" )
+DButton:Dock( TOP )
+DButton:DockMargin( 0, 0, 0, 25 )
+DButton:Paint( 100, 30 )
+DButton:SetTextColor( Color( 121, 3, 255) )
+DButton.DoClick = function()
+	CKeyBinder.RemoveBind("+feedbacker")
+	CKeyBinder.RemoveBind("-feedbacker")
+	CKeyBinder.RemoveBind("feedbacker_swap")
+	CKeyBinder.RemoveBind("+feedback")
+	CKeyBinder.RemoveBind("+knuckleblast")
+	CKeyBinder.RemoveBind("-knuckleblast")
+	CKeyBinder.RemoveBind("+ultrakill_dash_bind")
+	CKeyBinder.RemoveBind("ultrakill_dash_bind")
+	CKeyBinder.RemoveBind("+ultrakill_slam_bind")
+	chat.AddText(Color(155, 255, 255), "All binds reset.")
+	surface.PlaySound( "resource/warning.wav" )
+end
+
+function DButton:Paint( w, h )
+	if self:IsHovered() then
+		surface.PlaySound( "resource/warning.wav" )
+		draw.RoundedBox( 50, 0, 0, w, h, Color( 145, 145, 145) )
+	else
+		draw.RoundedBox( 50, 0, 0, w, h, Color( 255, 255, 255, 255) )
+	end
+end
+
+function Label(text, color, font, y)
+
+local DLabel = vgui.Create( "DLabel", DScrollPanel )
+DLabel:SetPos( 40, y )
+DLabel:SetSize( nil, 35 )
+DLabel:Dock( TOP )
+--binder:DockMargin( 0, 0, 0, 25 )
+DLabel:SetFont( font )
+DLabel:SetTextColor( color )
+DLabel:SetText( text )
+
+end
+
+function ComboBoxAdd(command, text)
+
+	local binder = vgui.Create( "DBinder", DScrollPanel )
+	binder:SetSize( nil, 35 )
+	binder:SetFont( "CloseCaption_Normal" )
+	binder:SetText( text )
+	binder:Dock( TOP )
+	binder:DockMargin( 0, 0, 0, 25 )
+	function binder:OnChange( num )
+		--LocalPlayer():ChatPrint("New bound key: "..input.GetKeyName( num ))
+		if CLIENT then
+			if num == 0 then 
+			LocalPlayer():PrintMessage( HUD_PRINTCENTER, "The key has been unbound." )
+			chat.AddText(Color(155, 255, 255), "The key has been unbound.")
+			return end
+			LocalPlayer():PrintMessage( HUD_PRINTCENTER, input.GetKeyName(num) )
+			chat.AddText(Color(255, 220, 155), input.GetKeyName(num))
+		end
+		CKeyBinder.AddBind(num, command)
+		surface.PlaySound( "common/wpn_hudoff.wav" )
+	end
+
+end
+
+function ComboBoxAdd2(command, text, command2)
+
+	local binder = vgui.Create( "DBinder", DScrollPanel )
+	binder:SetSize( nil, 35 )
+	binder:SetFont( "CloseCaption_Normal" )
+	binder:SetText( text )
+	binder:Dock( TOP )
+	binder:DockMargin( 0, 0, 0, 25 )
+	function binder:OnChange( num )
+		--LocalPlayer():ChatPrint("New bound key: "..input.GetKeyName( num ))
+		if CLIENT then
+			if num == 0 then 
+			LocalPlayer():PrintMessage( HUD_PRINTCENTER, "The key has been unbound." )
+			chat.AddText(Color(155, 255, 255), "The key has been unbound.")
+			return end
+			LocalPlayer():PrintMessage( HUD_PRINTCENTER, input.GetKeyName(num) )
+			chat.AddText(Color(255, 220, 155), input.GetKeyName(num))
+		end
+		CKeyBinder.AddBind(num, command)
+		CKeyBinder.AddBind(num, command2)
+		surface.PlaySound( "common/wpn_hudoff.wav" )
+	end
+	
+end
+
+function CheckBoxAdd(command, text)
+
+	local DermaCheckbox = frame:Add( "DCheckBoxLabel" ) -- Create the checkbox
+	DermaCheckbox:SetText(text)					-- Set the text next to the box
+	DermaCheckbox:SetSize( nil, 35 )
+	DermaCheckbox:SetFont( "CloseCaption_Normal" )
+	DermaCheckbox:Dock( TOP )
+	DermaCheckbox:DockMargin( 0, 0, 0, 25 )
+	DermaCheckbox:SetConVar(command)				-- Change a ConVar when the box it ticked/unticked
+	DermaCheckbox:SetValue( true )						-- Initial value
+	DermaCheckbox:SizeToContents()						-- Make its size the same as the contents
+
+end
+
+ComboBoxAdd2("+feedbacker", "Arms Bind", "-feedbacker")
+ComboBoxAdd("feedbacker_swap", "Swap Arms Bind")
+ComboBoxAdd("+feedback", "Individual Feedbacker Bind")
+ComboBoxAdd2("+knuckleblast", "Individual Knuckleblast Bind", "-knuckleblast")
+ComboBoxAdd("+ultrakill_dash_bind", "Dash Bind")
+ComboBoxAdd("+ultrakill_slam_bind", "Groundslam Bind")
+CheckBoxAdd("horde_enable_music", "Horde Boss Music")
+CheckBoxAdd("horde_enable_halo", "Horde Enemy Halos")
+CheckBoxAdd("horde_disable_default_gadget_use_key", "Disable default key bind for active gadgets")
+Label("If you do the knuckleblast, you can only do the punch.", Color(155, 255, 255), "TargetID", 380)
+Label("Bind +knuckleblast in the console if you want control over this.", Color(155, 255, 255), "TargetID", 420)
+end
 
 killicon.AddAlias("arccw_horde_awp", "arccw_go_awp")
 killicon.AddAlias("arccw_horde_barret", "arccw_mw2_barrett")

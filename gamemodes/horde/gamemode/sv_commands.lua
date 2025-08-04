@@ -14,6 +14,29 @@ util.AddNetworkString("Horde_RenderObjectives")
 util.AddNetworkString("Horde_RenderGameResult")
 util.AddNetworkString("Horde_Console_Commands")
 util.AddNetworkString("Horde_Disable_Levels")
+util.AddNetworkString("Horde_ToggleSettings")
+
+function HORDE:Settings(ply)
+    net.Start("Horde_ToggleSettings")
+    net.Send(ply)
+end
+
+concommand.Add( "horde_serversettings", function( ply, cmd, args )
+	HORDE:Settings(ply)
+--end
+end )
+
+
+hook.Add( "PlayerButtonDown", "HordeOpenSettings", function( ply, button )
+	--if input.LookupBinding( "horde_serversettings" ) != nil then return end
+	if button == KEY_F6 then 
+
+		if CLIENT and not IsFirstTimePredicted() then
+			return
+		end
+		ply:ConCommand("horde_serversettings")
+	end
+end)
 
 function HORDE:BroadcastPlayersReadyMessage(str)
     net.Start("Horde_RenderPlayersReady")
@@ -506,10 +529,7 @@ concommand.Add("horde_testing_spawn_enemy", function (ply, cmd, args)
                 add = 0.55
             end
         end
-        spawned_enemy:SetMaxHealth(spawned_enemy:GetMaxHealth() *
-            math.max(HORDE.difficulty_elite_health_scale_multiplier[HORDE.difficulty],
-                scale * HORDE.difficulty_elite_health_scale_multiplier[HORDE.difficulty] *
-                (add + HORDE.difficulty_elite_health_scale_add[HORDE.difficulty])))
+		spawned_enemy:SetMaxHealth(spawned_enemy:GetMaxHealth() * math.max(1, scale * (add + HORDE.Difficulty[HORDE.CurrentDifficulty].eliteHealthScaleAdd)))
     end
 
     if enemy.health_scale then

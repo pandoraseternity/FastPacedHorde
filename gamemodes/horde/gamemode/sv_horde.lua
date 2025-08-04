@@ -25,7 +25,6 @@ local horde_boss_spawned = false
 local horde_boss_reposition = false
 local horde_boss_properties = nil
 local boss_music_loop = nil
-local boss_music_boolean = false
 
 HORDE.BreakTimerUpdate = 0
 HORDE.DirectorIntervalUpdate = 0
@@ -344,7 +343,7 @@ hook.Add("PostEntityTakeDamage", "Horde_PostDamage", function (ent, dmg, took)
                     net.Broadcast()
 
                     -- Some special music for horde default boss.
-                    if GetConVar("horde_default_enemy_config"):GetInt() == 1 and HORDE.horde_boss and HORDE.horde_boss:IsValid() and boss_music_loop and not horde_boss_critical and ent.Critical then
+                    /*if GetConVar("horde_default_enemy_config"):GetInt() == 1 and HORDE.horde_boss and HORDE.horde_boss:IsValid() and boss_music_loop and not horde_boss_critical and ent.Critical then
                         timer.Remove("Horde_BossMusic")
                         boss_music_loop:Stop()
                         local fierce_music = {"music/hl1_song10.mp3", "music/hl2_song4.mp3", "music/hl2_song25_teleporter.mp3"}
@@ -358,7 +357,8 @@ hook.Add("PostEntityTakeDamage", "Horde_PostDamage", function (ent, dmg, took)
                         end)
                         boss_music_loop:Play()
                         horde_boss_critical = true
-                    end
+                    end*/
+					
                 end
             end
             --if ent:Health() <= 0 then ent:Remove() return end
@@ -420,10 +420,9 @@ function HORDE:HardResetDirector()
     horde_boss_properties = nil
     horde_boss_reposition = false
     HORDE.horde_boss_name = nil
-    if boss_music_boolean == true && boss_music_loop then
+    if boss_music_loop then
 		timer.Remove("Horde_BossMusic")
-		HordeBossMusic(boss_music_loop, true)
-        boss_music_boolean = false
+		RunConsoleCommand("stopsound")
 		boss_music_loop = nil
     end
     net.Start("Horde_SyncGameInfo")
@@ -954,7 +953,7 @@ end
 function HordeBossMusic(music, endmusic)
 	if GetConVar("horde_enable_music"):GetInt() != 1 then return end
 	net.Start("Horde_BossMusicNet")
-	net.WriteString(music)--enemy.boss_properties.music)
+	net.WriteString(music)--enemy.boss_properties.music
 	net.WriteBool(endmusic)
 	net.Broadcast()
 end
@@ -971,7 +970,6 @@ function HORDE:SpawnBoss(enemies, valid_nodes)
 
         local enemy = HORDE.bosses[HORDE.horde_boss_name .. tostring(enemy_wave)]
 		boss_music_loop = enemy.boss_properties.music --keeps the filelocation of the music
-		boss_music_boolean = true
         enemy.is_elite = true
         spawned_enemy = HORDE:SpawnEnemy(enemy, pos + Vector(0,0,HORDE.enemy_spawn_z))
         spawned_enemy:SetVar("is_boss", true)
@@ -985,13 +983,7 @@ function HORDE:SpawnBoss(enemies, valid_nodes)
         net.WriteInt(spawned_enemy:Health(),32)
         net.Broadcast()
 		if enemy.boss_properties.music then
-			--boss_music_loop = enemy.boss_properties.music
 			HordeBossMusic(enemy.boss_properties.music)
-            if enemy.boss_properties.music_duration and enemy.boss_properties.music_duration > 0 then
-				timer.Create("Horde_BossMusic", enemy.boss_properties.music_duration, 0, function()
-				HordeBossMusic(enemy.boss_properties.music)
-				end)
-			end
 		end
 
         net.Start("Horde_HighlightEntities")
@@ -1280,8 +1272,10 @@ end
 -- Ends a wave.
 function HORDE:WaveEnd()
     timer.Remove("Horde_BossMusic")
-    if boss_music_boolean == true && boss_music_loop then
-		HordeBossMusic(boss_music_loop, true)
+	RunConsoleCommand("stopsound")
+    if boss_music_loop then
+		--HordeBossMusic(boss_music_loop, true)
+		RunConsoleCommand("stopsound")
         boss_music_boolean = false
 		boss_music_loop = nil
     end
@@ -1365,9 +1359,10 @@ function HORDE:WaveEnd()
             end
         end
     end
+	
     if GetConVarNumber("horde_npc_cleanup") == 1 then
         for _, ent in pairs(ents.GetAll()) do
-            if ent:IsNPC() and not ent:GetNWEntity("HordeOwner"):IsPlayer() then
+            if ent:IsNPC() and not ent:GetNWEntity("HordeOwner"):IsPlayer() and ent.DeathDelayTime == nil then
                 ent:Remove()
             end
         end

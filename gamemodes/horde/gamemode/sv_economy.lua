@@ -601,10 +601,10 @@ net.Receive("Horde_BuyItem", function (len, ply)
                         end)
                         HORDE:DropTurret(ent)
                     else
-                        --ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+                        ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
                         timer.Simple(0.1, function ()
                             if not ent:IsValid() then return end
-                            --ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
+                            ent:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
                         end)
                     end
 

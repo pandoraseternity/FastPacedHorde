@@ -77,7 +77,7 @@ util.AddNetworkString("Horde_SyncBossSpawned")
 util.AddNetworkString("Horde_SyncBossHealth")
 end
 
-HORDE = {}
+HORDE = HORDE || {}
 HORDE.__index = HORDE
 HORDE.version = "1.1.2.1"
 print("[HORDE] HORDE Version is " .. HORDE.version) -- Sanity check
@@ -111,9 +111,9 @@ HORDE.current_break_time = HORDE.total_break_time
 HORDE.max_spawn_distance = math.max(100, GetConVarNumber("horde_max_spawn_distance"))
 HORDE.min_spawn_distance = math.max(100, GetConVarNumber("horde_min_spawn_distance"))
 HORDE.max_enemies_alive = 20
-HORDE.spawned_enemies = {}
-HORDE.spawned_enemies_count = {}
-HORDE.ai_nodes = {}
+HORDE.spawned_enemies = HORDE.spawned_enemies || {}
+HORDE.spawned_enemies_count = HORDE.spawned_enemies_count || {}
+HORDE.ai_nodes = HORDE.ai_nodes || {}
 HORDE.found_ai_nodes = false
 HORDE.enemy_spawn_z = 6
 HORDE.min_base_enemy_spawns_per_think = 4

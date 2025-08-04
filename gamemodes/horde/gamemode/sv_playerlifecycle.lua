@@ -13,7 +13,7 @@ util.AddNetworkString("Horde_SyncClientExps")
 util.AddNetworkString("Horde_ShowLeaderboardsTemporarily")
 
 HORDE.vote_remaining_time = 60
-HORDE.respawncountdown = 80
+HORDE.respawncountdown = 60
 HORDE.aliveplayers = 0
 HORDE.deadplayers = 0
 HORDE.game_end = nil
