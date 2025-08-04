@@ -301,7 +301,7 @@ local fontgrenade = "Horde_Grenade"
 local display_money = 0
 hook.Add("HUDPaint", "Horde_DrawHud", function ()
     if GetConVarNumber("horde_enable_client_gui") == 0 then return end
-    local colhp = Color(255, 255, 255, 255)
+    local colhp = Color(155, 223, 47)
     local airgap = ScreenScale(6)
 
     local icon_x = airgap + ScreenScale(34)
@@ -341,7 +341,7 @@ hook.Add("HUDPaint", "Horde_DrawHud", function ()
         if MySelf:Health() <= 30 then
             colhp = Color(150, 0, 0)
         elseif MySelf:Health() < 50 then
-            colhp = Color(255, 185, 185)
+            colhp = Color(245, 248, 88)
         end
 
         local use_mind = MySelf:Horde_GetMaxMind() > 0

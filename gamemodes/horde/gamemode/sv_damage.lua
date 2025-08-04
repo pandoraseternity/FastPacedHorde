@@ -268,49 +268,12 @@ hook.Add("EntityTakeDamage", "Horde_ApplyDamageTaken", function (target, dmg)
     if bonus.evasion > 0 then
         local evade = math.random()
         if evade <= bonus.evasion then
-            ply:EmitSound("horde/player/evade.ogg", 125, 100, 1, CHAN_AUTO)
+            ply:EmitSound("horde/player/evade.ogg", 1250, 100, 1, CHAN_AUTO)
             hook.Run("Horde_OnPlayerEvade", ply, dmg)
             return true
         end
     end
     if bonus.resistance >= 1.0 then return true end
-
-    if ply.Horde_Special_Armor then
-        local armor = ply.Horde_Special_Armor
-        local dmgtype = dmg:GetDamageType()
-        if armor == "armor_assault" then
-            if HORDE:IsBallisticDamage(dmg) then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_heavy" then
-        elseif armor == "armor_medic" then
-            if HORDE:IsPoisonDamage(dmg) then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_demolition" then
-            if HORDE:IsBlastDamage(dmg) then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_ghost" then
-            bonus.evasion = bonus.evasion + 0.05
-        elseif armor == "armor_engineer" then
-            bonus.resistance = bonus.resistance + 0.05
-        elseif armor == "armor_warden" then
-            if HORDE:IsLightningDamage(dmg) then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_cremator" then
-            if HORDE:IsFireDamage(dmg) then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_berserker" then
-            if dmgtype == DMG_SLASH or dmgtype == DMG_CLUB then
-                bonus.resistance = bonus.resistance + 0.08
-            end
-        elseif armor == "armor_survivor" then
-            bonus.resistance = bonus.resistance + 0.05
-        end
-    end
 
     dmg:ScaleDamage(bonus.less * (1 - bonus.resistance))
     dmg:SubtractDamage(bonus.block)
@@ -358,6 +321,57 @@ hook.Add("EntityTakeDamage", "Horde_ApplyDamageTaken", function (target, dmg)
             buildup = math.min(85, buildup)
         end
         ply:Horde_AddDebuffBuildup(debuff, buildup, dmg:GetAttacker())
+    end
+end)
+
+hook.Add("Horde_OnPlayerDamageTaken", "Horde_SpecialArmor", function (ply, dmg, bonus)
+    if not ply.Horde_Special_Armor then return end
+    local armor = ply.Horde_Special_Armor
+    local dmgtype = dmg:GetDamageType()
+    if armor == "armor_assault" then
+        if HORDE:IsBallisticDamage(dmg) then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_heavy" then
+    elseif armor == "armor_medic" then
+        if HORDE:IsPoisonDamage(dmg) then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_demolition" then
+        if HORDE:IsBlastDamage(dmg) then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_ghost" then
+        bonus.evasion = bonus.evasion + 0.15
+    elseif armor == "armor_engineer" then
+        bonus.resistance = bonus.resistance + 0.15
+    elseif armor == "armor_warden" then
+        if HORDE:IsLightningDamage(dmg) then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_cremator" then
+        if HORDE:IsFireDamage(dmg) then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_berserker" then
+        if dmgtype == DMG_SLASH or dmgtype == DMG_CLUB then
+            bonus.resistance = bonus.resistance + 0.15
+        end
+    elseif armor == "armor_survivor" then
+        bonus.resistance = bonus.resistance + 0.1
+    end
+end)
+
+hook.Add("Horde_OnPlayerDamageTaken", "Horde_PowerArmor", function (ply, dmg, bonus)
+    if not ply.Horde_HEVShield then return end
+	local suitimpact = { "horde/player_deathmatch/hevimpact01.wav", "horde/player_deathmatch/hevimpact02.wav", "horde/player_deathmatch/hevimpact03.wav", "horde/player_deathmatch/hevimpact04.wav", "horde/player_deathmatch/hevimpact05.wav", "horde/player_deathmatch/hevimpact06.wav", "horde/player_deathmatch/hevimpact07.wav", "horde/player_deathmatch/hevimpact08.wav", "horde/player_deathmatch/hevimpact09.wav", "horde/player_deathmatch/hevimpact10.wav" }
+    local armor = ply.Horde_HEVShield
+    local dmgtype = dmg:GetDamageType()
+    if armor == true && ply:Armor() >= 40 then
+        bonus.resistance = bonus.resistance + 0.5
+		sound.Play( table.Random( suitimpact ), ply:GetPos() )
+	elseif armor == true && ply:Armor() < 40 then
+		bonus.resistance = bonus.resistance + 0.25
     end
 end)
 

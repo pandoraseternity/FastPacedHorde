@@ -712,8 +712,8 @@ function HORDE:GetDefaultItemsData()
         nil, 10, -1, nil, "items/weapon_medkit.png", nil, nil, nil, nil, nil)
     HORDE:CreateItem("Equipment",  "Health Vial",    "item_healthvial",    15,   0, "A capsule filled with sticky green liquid.\nHeals instantly when picked up.",
     {Medic=true}, 10, -1, {type=HORDE.ENTITY_PROPERTY_DROP, x=50, z=15, yaw=0, limit=5}, nil)
-    HORDE:CreateItem("Equipment",  "HEV",    "aps_suit_hevv",    2000,   0, "Power suit that gives 50% resistance when powered with atleast 40 battery.\n Will only give 25% resistance when below 40 battery.",
-    nil, 10, -1, {type=HORDE.ENTITY_PROPERTY_DROP, x=50, z=15, yaw=0, limit=5}, nil)
+    HORDE:CreateItem("Equipment",  "HEV",    "armor_hevsuit",    2000,   0, "Power suit that gives 50% resistance when powered with atleast 40 battery.\n Will only give 25% resistance when below 40 battery.\n It is cosmetic unless the user wishes for it to be visible.",
+    nil, 10, -1, {type=HORDE.ENTITY_PROPERTY_ARMOR, armor=100}, nil)
     --HORDE:CreateItem("Equipment", "Full Kevlar Armor", "armor100", 1000, 0, "Full kevlar armor set.\nFills up 100% of your armor bar.",
     --nil, 10, -1, {type=HORDE.ENTITY_PROPERTY_ARMOR, armor=100}, "items/armor_100.png")
     HORDE:CreateItem("Equipment", "Advanced Kevlar Armor", "armor_survivor", 1000, 0, "Distinguished Survivor armor.\n\nFills up 100% of your armor bar.\nProvides 5% increased damage resistance.",
