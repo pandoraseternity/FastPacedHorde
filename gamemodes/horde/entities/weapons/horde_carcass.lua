@@ -75,7 +75,9 @@ function SWEP:SetupDataTables()
 
 	self:NetworkVar( "Float", 0, "NextMeleeAttack" )
 	self:NetworkVar( "Float", 1, "NextIdle" )
+	self:NetworkVar( "Float", 2, "ChargingTimer" )
 	self:NetworkVar( "Int", 2, "Combo" )
+	self:NetworkVar( "Bool", 1, "Charging" )
 
 end
 
@@ -92,9 +94,11 @@ end
 
 function SWEP:PrimaryAttack()
 	self:SetNextPrimaryFire( CurTime() + self.Delay )
+	self:SetCharging(true)
+	self:SetChargingTimer(CurTime() + 0.5)
 
-	self.Charging = 1
-	self.ChargingTimer = CurTime() + 0.5
+	--self.Charging = 1
+	--self.ChargingTimer = CurTime() + 0.5
 end
 
 function SWEP:Punch(charged)
@@ -130,6 +134,8 @@ function SWEP:DealDamage()
 		local level = self.Owner:Horde_GetUpgrade("horde_carcass")
 		self.BaseDamage = 40 + 16 * level
 	end
+	
+	local ply = self:GetOwner()
 
 	local anim = self:GetSequenceName(self.Owner:GetViewModel():GetSequence())
 
@@ -153,22 +159,35 @@ function SWEP:DealDamage()
 		} )
 	end
 
-	-- We need the second part for single player because SWEP:Think is ran shared in SP
-	if ( tr.Hit && !( game.SinglePlayer() && CLIENT ) ) then
+	-- We need the second part for single player because SWEP:Think is ran shared in SP && !( game.SinglePlayer() && CLIENT )
+	if ( tr.Hit ) then
 		self:EmitSound( HitSound )
 	end
 
 	if tr.Hit and tr.Entity:IsWorld() and self.Charged == 1 and self.Owner:Horde_GetPerk("carcass_reinforced_arms") then
 		local hitnormal = tr.HitNormal
 		self.Owner:SetVelocity(self.Owner:GetVelocity() + hitnormal * 250)
+		--if SERVER then
+			ParticleEffect("100lb_impact_dirt_dustup",self:GetPos() + self:GetUp()*10,Angle(0,0,0),self.Owner)
+		--end
+	end
+	
+	if tr.Hit and (tr.Entity:IsWorld() or tr.Entity:IsNPC() or tr.Entity:IsNextBot()) and self.Charged == 1 && CLIENT then
+		local effData = EffectData()
+		effData:SetOrigin(ply:GetShootPos() + (ply:GetForward()*45))
+		effData:SetRadius(100)
+		effData:SetNormal( ply:GetShootPos() )
+		effData:SetAngles(ply:LocalEyeAngles())
+		util.Effect("seismic_wave", effData)
 	end
 
 	local hit = false
 	local scale = phys_pushscale:GetFloat()
-
-	if ( SERVER && IsValid( tr.Entity ) && ( tr.Entity:IsNPC() || tr.Entity:IsPlayer() || tr.Entity:Health() > 0 ) ) then
+--SERVER && 
+	if (IsValid( tr.Entity ) && ( tr.Entity:IsNPC() || tr.Entity:IsPlayer() || tr.Entity:IsNextBot() || tr.Entity:Health() > 0 ) ) then
 		local attacker = self.Owner
 		if ( !IsValid( attacker ) ) then attacker = self end
+		
 
 		self:FireBullets({
             Attacker = attacker,
@@ -190,8 +209,10 @@ function SWEP:DealDamage()
 				end
 				if ply:Horde_GetPerk("carcass_reinforced_arms") then
 					bonus.more = bonus.more * math.max(1, ply:GetVelocity():Length() / 300)
-					if bonus.more > 5 then
+					if bonus.more > 1 then
 						ply:EmitSound("bootleg_ultrakill/HammerExplosion3.wav")
+						util.ScreenShake(self:GetPos(), 10, 2, 2, 500)
+						ParticleEffect("100lb_impact_dirt_dustup",self:GetPos() + self:GetUp()*10,Angle(0,0,0),self.Owner)
 					end
 				end
 				if ply.Horde_Bio_Thruster_Stack and ply.Horde_Bio_Thruster_Stack > 0 then
@@ -202,9 +223,11 @@ function SWEP:DealDamage()
 				dmginfo:SetDamageType(DMG_CLUB)
 				if ( anim == "fists_left" ) then
 					dmginfo:SetDamageForce( self.Owner:GetRight() * 4912 * scale + self.Owner:GetForward() * 9998 * scale ) -- Yes we need those specific numbers
+					tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(450 + ply:GetVelocity():Length())) 
 				elseif ( anim == "fists_right" ) then
 					dmginfo:SetDamageForce( self.Owner:GetRight() * -4912 * scale + self.Owner:GetForward() * 9989 * scale )
-				elseif ( anim == "fists_uppercut" ) then
+					tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(450 + ply:GetVelocity():Length())) 
+				elseif ( anim == "fists_uppercut" ) then -- Charged attack
 					dmginfo:SetDamageForce( self.Owner:GetUp() * 5158 * scale + self.Owner:GetForward() * 10012 * scale )
 					local dmg = DamageInfo()
 					dmg:SetAttacker(attacker)
@@ -212,25 +235,32 @@ function SWEP:DealDamage()
 					dmg:SetDamageType(DMG_CLUB)
 					dmg:SetDamage(dmginfo:GetDamage() / 2)
 					dmg:SetDamageForce(Vector(0,0,0))
-					dmg:SetDamageCustom(HORDE.DMG_SPLASH)
+					if SERVER then dmg:SetDamageCustom(HORDE.DMG_SPLASH) end
 
 					if ply:Horde_GetPerk("carcass_reinforced_arms") then
 						local vmult = math.max(1, ply:GetVelocity():Length() / 180)
 						util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 200 * vmult)
 						dmginfo:SetDamageForce(self.Owner:GetUp() * 5158 * scale * vmult + self.Owner:GetForward() * 10012 * scale * vmult)
+						tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(1200 + ply:GetVelocity():Length())) 
 					else
 						util.BlastDamageInfo(dmg, dmginfo:GetDamagePosition(), 225)
+						tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(600 + ply:GetVelocity():Length())) 
 					end
 				end
 
                 if (not trb.Entity:IsValid()) or (not trb.Entity:IsNPC()) then
                     tr.Entity:TakeDamageInfo(dmginfo)
+					tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(250 + ply:GetVelocity():Length())) 
                 end
             end
         })
+		
+		if SERVER then
 
 		SuppressHostEvents( NULL ) -- Let the breakable gibs spawn in multiplayer on client
 		SuppressHostEvents( self.Owner )
+		
+		end
 
 		hit = true
 
@@ -580,30 +610,24 @@ function SWEP:Think()
 
 		self:SetNextMeleeAttack( 0 )
 
-	end
+	end--SERVER and 
 
-	if SERVER and self.Charging == 1 and !self.Owner:KeyDown( IN_ATTACK ) then
+	if self:GetCharging() and (!self:GetOwner():KeyDown( IN_ATTACK )) then
         self:SetNextPrimaryFire( CurTime() + self.Delay )
-        self.Charging = 0
+        self:SetCharging(false)
 
-		if self.ChargingTimer <= CurTime() then
-			local effData = EffectData()
-			effData:SetOrigin(ply:GetShootPos() + (ply:GetForward()*45))
-			effData:SetRadius(200)
-			effData:SetNormal( ply:GetShootPos() )
-			effData:SetAngles(ply:LocalEyeAngles())
-			util.Effect("seismic_wave", effData)
+		if self:GetChargingTimer() <= CurTime() then
 			self:Punch(1)
 		else
 			self:Punch(0)
 		end
     end
 	
-	if SERVER and self.Charging == 1 then
+	if SERVER and self:GetCharging() then
 		self:SetNextPrimaryFire( CurTime() + self.Delay )
 	end
 
-	if SERVER and self.Charging == 1 and self.ChargingTimer <= CurTime() + 0.2 then
+	if SERVER and self:GetCharging() and self:GetChargingTimer() <= CurTime() + 0.2 then
 		local vm = self.Owner:GetViewModel()
 		vm:SendViewModelMatchingSequence( vm:LookupSequence( "seq_admire" ) )
 	end

@@ -5,7 +5,7 @@ if CLIENT then
 	--SWEP.WepSelectIcon		= surface.GetTextureID("vgui/entities/weapon_builder") 
 	SWEP.BounceWeaponIcon	= false 
 	language.Add("horde_engiwrench", "Builder")
-	--killicon.Add("weapon_builder", "effects/killicons/weapon_builder", color_white )
+	killicon.Add("horde_engiwrench", "effects/killicons/weapon_builder", color_white )
 end
 
 --[[ -- put this into the entity code you want to become buildable
@@ -35,12 +35,12 @@ timer.Simple( 1, function()
 end )
 
 Horde_EntitiesTBL = {
-	[ "npc_turret_floor" ] = { taps = 4, EntName = "npc_turret_floor", PrintName = "Rebel Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1000, limit = 3},
-	[ "npc_vj_horde_shotgun_turret" ] = { taps = 4, EntName = "npc_vj_horde_shotgun_turret", PrintName = "Shotgun Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1200, limit = 3},
+	[ "npc_turret_floor" ] = { taps = 4, EntName = "npc_turret_floor", PrintName = "Rebel Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1000, limit = 2},
+	[ "npc_vj_horde_shotgun_turret" ] = { taps = 4, EntName = "npc_vj_horde_shotgun_turret", PrintName = "Shotgun Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1350, limit = 2},
 	[ "npc_vj_horde_rocket_turret" ] = { taps = 5, EntName = "npc_vj_horde_rocket_turret", PrintName = "Rocket Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 1350, limit = 2},
 	[ "npc_vj_horde_sniper_turret" ] = { taps = 5, EntName = "npc_vj_horde_sniper_turret", PrintName = "Sniper Turret", mdl = "models/combine_turrets/ground_turret.mdl", money = 1500, limit = 2},
 	[ "npc_vj_horde_laser_turret" ] = { taps = 6, EntName = "npc_vj_horde_laser_turret", PrintName = "Laser Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 1500, limit = 2},
-	[ "npc_vj_horde_survey" ] = { taps = 6, EntName = "npc_vj_horde_survey", PrintName = "Gatekeeper/Defense Machine", mdl = "models/Zombie/Poison.mdl", money = 2000, limit = 2},
+	[ "npc_vj_horde_survey" ] = { taps = 6, EntName = "npc_vj_horde_survey", PrintName = "Overseer Machine", mdl = "models/Zombie/Poison.mdl", money = 2000, limit = 1},
 	[ "npc_vj_horde_combat_bot" ] = { taps = 7, EntName = "npc_vj_horde_combat_bot", PrintName = "Combat Bot", mdl = "models/dog.mdl", money = 2500, limit = 1},
 }
 
@@ -198,7 +198,7 @@ function SWEP:PrimaryAttack()
 		} )
 		if tr2.Hit then
 			if own:Horde_GetMoney() <= self:GetBuildEntMoney() then
-				self:EmitSound( "weapons/wrench_hit_build_fail.wav",80,math.random( 95, 100 ) )
+				self:EmitSound( "common/warning.wav",80,math.random( 95, 100 ) )
 				self:EmitSound( "buttons/button8.wav",80,math.random( 95, 100 ) )
 				self.buildEnt:Remove()
 				self:SetNWBool( "ReadytoBuild", false )
@@ -207,7 +207,7 @@ function SWEP:PrimaryAttack()
 			local drop_entities = own:Horde_GetDropEntities()
 			if drop_entities[self.buildEnt.EntToBuild] then
 				if drop_entities[self.buildEnt.EntToBuild] >= self:GetBuildEntLimit() then 
-				self:EmitSound( "weapons/wrench_hit_build_fail.wav",80,math.random( 95, 100 ) )
+				self:EmitSound( "common/warning.wav",80,math.random( 95, 100 ) )
 				self:EmitSound( "buttons/button8.wav",80,math.random( 95, 100 ) )
 				self.buildEnt:Remove()
 				self:SetNWBool( "ReadytoBuild", false )
@@ -254,6 +254,7 @@ function SWEP:PrimaryAttack()
 	self:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.Delay )
 	own:EmitSound( "weapons/iceaxe/iceaxe_swing1.wav",80,math.random( 95, 100 ) )
+	if ( CLIENT ) then return end
 	if SERVER and ( IsValid( tr.Entity ) && !tr.Entity:IsWorld() ) then
 		own:EmitSound( ")weapons/cbar_hitbod"..math.random(1,3)..".wav", 80, math.random( 95, 100 ) )
 		if HORDE:IsEnemy(tr.Entity) then
@@ -273,8 +274,12 @@ function SWEP:PrimaryAttack()
 		elseif tr.Entity:GetClass() == "sent_construction" then
 			local own = self:GetOwner()
 			tr.Entity:SetProgress( math.Round(tr.Entity:GetProgress() + 100/tr.Entity.EntToBuildCost,2) )
+			if own:Horde_GetMoney() >= 25 then
 			own:Horde_AddMoney(-(25))
 			own:Horde_SyncEconomy()
+			elseif own:Horde_GetMoney() < 25 then
+			self:EmitSound( "common/warning.wav",80,math.random( 95, 100 ) )
+			end
 		end
 	elseif SERVER and ( tr.Entity:IsWorld() ) then
 		own:EmitSound( "weapons/cbar_hit"..math.random(1,2)..".wav",80,math.random( 95, 100 ) )
@@ -302,6 +307,7 @@ function SWEP:SecondaryAttack()
 	self:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
 	self:SetNextSecondaryFire( CurTime() + self.Secondary.Delay )
 	own:EmitSound( "horde/weapons/jotuun/attack.ogg",80,math.random( 95, 100 ) )
+	if ( CLIENT ) then return end
 	if SERVER and ( IsValid( tr.Entity ) && !tr.Entity:IsWorld() ) then
 		own:EmitSound( "horde/weapons/jotuun/hit1.ogg",80,math.random( 95, 100 ) )
 		local v2 = tr.Entity

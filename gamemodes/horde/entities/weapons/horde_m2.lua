@@ -85,7 +85,7 @@ function SWEP:PrimaryAttack()
             dmg:SetAttacker(self.Owner)
             dmg:SetInflictor(self)
             dmg:SetDamageType(DMG_BURN)
-            dmg:SetDamage(16)
+            dmg:SetDamage(27)
             util.BlastDamageInfo(dmg, trace.HitPos, 128)
             
             if (SERVER) and trace.Hit then

@@ -327,8 +327,8 @@ hook.Add("PlayerSpawn", "Horde_Economy_Sync", function (ply)
     ply:Horde_SetWeight(ply:Horde_GetMaxWeight())
     if ply.Horde_Special_Armor then
         net.Start("Horde_SyncSpecialArmor")
-            net.WriteString(ply.Horde_Special_Armor)
-            net.WriteUInt(1, 3)
+        net.WriteString(ply.Horde_Special_Armor)
+        net.WriteUInt(1, 3)
         net.Send(ply)
     end
     if ply:Horde_GetGadget() then
@@ -779,6 +779,9 @@ net.Receive("Horde_SellItem", function (len, ply)
         ply:Horde_SyncEconomy()
     else
         local item = HORDE.items[class]
+		if item.class == "armor_hevsuit" then
+			ply.Horde_HEVShield = nil
+		end
         if item.entity_properties.type == HORDE.ENTITY_PROPERTY_DROP then
             local drop_entities = ply:Horde_GetDropEntities()
             if drop_entities and drop_entities[class] then
@@ -914,8 +917,8 @@ net.Receive("Horde_SelectClass", function (len, ply)
     --ply:Horde_SetWeight(ply:Horde_GetMaxWeight())
     if ply.Horde_Special_Armor then
         net.Start("Horde_SyncSpecialArmor")
-            net.WriteString(ply.Horde_Special_Armor)
-            net.WriteUInt(0, 3)
+        net.WriteString(ply.Horde_Special_Armor)
+        net.WriteUInt(0, 3)
         net.Send(ply)
         ply.Horde_Special_Armor = nil
     end

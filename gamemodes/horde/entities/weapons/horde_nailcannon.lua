@@ -6,19 +6,13 @@ SWEP.Purpose = ""
 SWEP.Instructions = ""
 SWEP.Category = "Horde" --This is required or else your weapon will be placed under "Other"
 
-
-
-
 SWEP.Spawnable= true --Must be true
 SWEP.AdminOnly = false
-
-
 
 SWEP.Base = "weapon_base"
 --Weapon_Mortar.Impact
 local ShootSound = Sound("bootleg_ultrakill/MachineGun.wav")
 SWEP.Primary.Damage = 0 --The amount of damage will the weapon do
-SWEP.Primary.CVar		= "bootleg_dmg_multiplier"
 SWEP.Primary.TakeAmmo = 1 -- How much ammo will be taken per shot
 SWEP.Primary.ClipSize = 50
 SWEP.Primary.DefaultClip = 50
@@ -71,14 +65,16 @@ self:SetWeaponHoldType( self.HoldType )
 self:SetLastAmmoRegen( CurTime() )
 
 	timer.Create( "railregen" .. self:EntIndex(), 1, 0, function() if IsValid(self) then
-		if IsValid(self) && self:Clip2() < 100 && CurTime() > self.shockwaiting then
+		if IsValid(self) && self:Clip2() < 60 && CurTime() > self.shockwaiting then
 			self.shockwaiting = CurTime() + 1
 			self:SetClip2( self:Clip2() + 10 )
 			self.processwaiting = 1
 		end
-		if IsValid(self) && self:Clip2() >= 100 && self.processwaiting == 1 then
+		if IsValid(self) && self:Clip2() >= 60 && self.processwaiting == 1 then
 			if self.processwaiting == 0 then return end
+			if ( CLIENT ) then
 			self:EmitSound("bootleg_ultrakill/RailcannonFullClickAndCharge.wav", 500, 100, 1, CHAN_ITEM)
+			end
 			self.processwaiting = 0
 		end
 	end end )
@@ -117,6 +113,9 @@ chair:SetAngles(ply:GetAngles())
 chair:SetOwner(self:GetOwner())
 chair:Spawn()
 chair:Activate()
+if self:GetOwner():Armor() > 50 then
+	chair:SetArmorCharged(true)
+end
 local phys = chair:GetPhysicsObject()
 phys:SetVelocity( self.Owner:GetAimVector() * 3000 )
 --phys:AddAngleVelocity( Vector( 0, 125, 0 ) )
@@ -179,20 +178,23 @@ local trace = util.TraceLine({
 
 		if SERVER then
 		
-		for k,ent in pairs(ents.FindAlongRay(self.Owner:GetShootPos()+self.Owner:GetAimVector()*30, self.Owner:GetShootPos()+self.Owner:GetAimVector()*32768 ,Vector(-10,-10,-10),Vector(10,10,10))) do
+		for k,ent in pairs(ents.FindAlongRay(self.Owner:GetShootPos()+self.Owner:GetAimVector()*60, self.Owner:GetShootPos()+self.Owner:GetAimVector()*32768 ,Vector(-10,-10,-10),Vector(10,10,10))) do
 		dmginfo = DamageInfo()
-		dmginfo:SetDamage( 500 )
+		dmginfo:SetDamage( 300 )
 		dmginfo:SetDamageType(DMG_SHOCK)
 		dmginfo:SetAttacker( self:GetOwner() )
 		dmginfo:SetInflictor( self )
 		if trace.HitGroup == HITGROUP_HEAD then
-			dmginfo:AddDamage(500)
+			dmginfo:AddDamage(300)
 		end
 		dmginfo:SetDamagePosition( trace.HitPos )
 		dmginfo:SetDamageForce(self:GetOwner():GetForward() * 16000)
 		
 		if ent ~= self.Owner then 
 			ent:TakeDamageInfo( dmginfo )
+			if ent:IsNPC() or ent:IsNextBot() then
+			ent:Horde_AddDebuffBuildup(HORDE.Status_Frostbite, 100, self.Owner)
+			end
 		end
 		
 		end
@@ -239,7 +241,6 @@ end
 
 local attackpos = self:DoTrace()
 util.ParticleTracerEx("Weapon_Combine_Ion_Cannon",self:GetPos(),self.Owner:GetEyeTrace().HitPos,false,self:EntIndex(),1)
-util.ParticleTracerEx("cguard_fire_beam",self:GetPos(),self.Owner:GetEyeTrace().HitPos,false,self:EntIndex(),1)
 
 
 local PlayerPos = self.Owner:GetShootPos()
@@ -254,14 +255,14 @@ fx:SetNormal(PlayerAim)
 fx:SetAttachment(self.MuzzleAttachment)
 util.Effect(self.MuzzleEffect,fx)
 	
-self:EmitSound("bootleg_ultrakill/RailcannonFire4.wav")
+self:EmitSound("ocpack/ioncannon_shoot_sound.wav")
 self:SendWeaponAnim( 181 )      // View model animation
 self.Owner:SetAnimation( PLAYER_ATTACK1 )
 self:SetNextPrimaryFire( CurTime() + self.Primary.Delay )
 
 self.Owner:SetViewPunchVelocity( Angle( -50, 0, 0 ) )
 
---self:SetClip2( 0 )
+self:SetClip2( 0 )
 
 end
 
