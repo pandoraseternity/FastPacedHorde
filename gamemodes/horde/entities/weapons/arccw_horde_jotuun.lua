@@ -39,7 +39,7 @@ SWEP.DefaultSkin = 0
 SWEP.DefaultWMSkin = 0
 
 SWEP.MeleeDamage = 120
-SWEP.Melee2Damage = 100
+SWEP.Melee2Damage = 180
 
 SWEP.PrimaryBash = true
 SWEP.CanBash = true

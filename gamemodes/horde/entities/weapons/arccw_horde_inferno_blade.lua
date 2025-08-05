@@ -38,7 +38,7 @@ SWEP.WorldModelOffset = {
 SWEP.DefaultSkin = 0
 SWEP.DefaultWMSkin = 0
 
-SWEP.MeleeDamage = 120
+SWEP.MeleeDamage = 160
 SWEP.Melee2Damage = 64
 
 SWEP.PrimaryBash = true
