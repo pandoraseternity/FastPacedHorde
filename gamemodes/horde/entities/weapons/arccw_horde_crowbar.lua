@@ -51,7 +51,7 @@ SWEP.Melee2Gesture = ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE2
 
 SWEP.MaximumDurability = 600
 SWEP.MaxHits = 2
-SWEP.MeleeBoundingBox = 
+SWEP.MeleeBoundingBox = { 
     primary = {
         wide = 8,
         tall = 8,
