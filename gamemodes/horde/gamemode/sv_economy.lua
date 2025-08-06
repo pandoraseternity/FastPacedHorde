@@ -658,15 +658,14 @@ net.Receive("Horde_BuyItem", function (len, ply)
                 
                 if item.class == "armor100" or item.class == "armor150" then
                     if ply:Armor() >= ply:GetMaxArmor() then return end
+				elseif item.class == "armor_hevsuit" then
+					ply.Horde_HEVShield = true
                 else
                     ply.Horde_Special_Armor = item.class
                     net.Start("Horde_SyncSpecialArmor")
                     net.WriteString(ply.Horde_Special_Armor)
                     net.WriteUInt(1, 3)
                     net.Send(ply)
-                end
-                if item.class == "armor_hevsuit" then
-                    ply.Horde_HEVShield = true
                 end
                 ply:SetArmor(ply:GetMaxArmor() * item.entity_properties.armor / 100)
 				if item.class == "armor_heavy" then
