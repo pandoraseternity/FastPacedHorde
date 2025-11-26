@@ -64,7 +64,7 @@ ENT.DisableDefaultRangeAttackCode = true
 
 ENT.HasSoundTrack = true -- Does the SNPC have a sound track?
 ENT.SoundTrackVolume = 1
-ENT.SoundTbl_SoundTrack = {"ocpack/music/vesselsofveng.mp3"}
+ENT.SoundTbl_SoundTrack = {"ocpack/music/frostbitten.mp3"}
 
 -- Leap
 ENT.HasLeapAttack = false

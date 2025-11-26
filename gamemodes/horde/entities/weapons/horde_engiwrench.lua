@@ -35,13 +35,13 @@ timer.Simple( 1, function()
 end )
 
 Horde_EntitiesTBL = {
-	[ "npc_turret_floor" ] = { taps = 4, EntName = "npc_turret_floor", PrintName = "Rebel Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1000, limit = 2},
-	[ "npc_vj_horde_shotgun_turret" ] = { taps = 4, EntName = "npc_vj_horde_shotgun_turret", PrintName = "Shotgun Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1350, limit = 2},
-	[ "npc_vj_horde_rocket_turret" ] = { taps = 5, EntName = "npc_vj_horde_rocket_turret", PrintName = "Rocket Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 1350, limit = 2},
-	[ "npc_vj_horde_sniper_turret" ] = { taps = 5, EntName = "npc_vj_horde_sniper_turret", PrintName = "Sniper Turret", mdl = "models/combine_turrets/ground_turret.mdl", money = 1500, limit = 2},
-	[ "npc_vj_horde_laser_turret" ] = { taps = 6, EntName = "npc_vj_horde_laser_turret", PrintName = "Laser Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 1500, limit = 2},
-	[ "npc_vj_horde_survey" ] = { taps = 6, EntName = "npc_vj_horde_survey", PrintName = "Overseer Machine", mdl = "models/Zombie/Poison.mdl", money = 2000, limit = 1},
-	[ "npc_vj_horde_combat_bot" ] = { taps = 7, EntName = "npc_vj_horde_combat_bot", PrintName = "Combat Bot", mdl = "models/dog.mdl", money = 2500, limit = 1},
+	[ "npc_turret_floor" ] = { taps = 4, EntName = "npc_turret_floor", PrintName = "Rebel Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1200, limit = 2},
+	[ "npc_vj_horde_shotgun_turret" ] = { taps = 4, EntName = "npc_vj_horde_shotgun_turret", PrintName = "Shotgun Turret", mdl = "models/combine_turrets/floor_turret.mdl", money = 1500, limit = 2},
+	[ "npc_vj_horde_rocket_turret" ] = { taps = 5, EntName = "npc_vj_horde_rocket_turret", PrintName = "Rocket Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 1500, limit = 2},
+	[ "npc_vj_horde_sniper_turret" ] = { taps = 5, EntName = "npc_vj_horde_sniper_turret", PrintName = "Sniper Turret", mdl = "models/combine_turrets/ground_turret.mdl", money = 2000, limit = 1},
+	[ "npc_vj_horde_laser_turret" ] = { taps = 6, EntName = "npc_vj_horde_laser_turret", PrintName = "Laser Turret", mdl = "models/horde/rocket_turret/rocket_turret.mdl", money = 2200, limit = 2},
+	[ "npc_vj_horde_survey" ] = { taps = 6, EntName = "npc_vj_horde_survey", PrintName = "Overseer Machine", mdl = "models/Zombie/Poison.mdl", money = 2500, limit = 1},
+	[ "npc_vj_horde_combat_bot" ] = { taps = 7, EntName = "npc_vj_horde_combat_bot", PrintName = "Combat Bot", mdl = "models/dog.mdl", money = 2800, limit = 1},
 }
 
 function BuilderIsCreature( ent ) return ( ent:IsPlayer() or ent:IsNPC() or ent:IsNextBot() or ent:GetClass():find("prop_ragdoll") ) end

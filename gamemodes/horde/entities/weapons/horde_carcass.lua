@@ -248,7 +248,7 @@ function SWEP:DealDamage()
 					end
 				end
 
-                if (not trb.Entity:IsValid()) or (not trb.Entity:IsNPC()) then
+                if (not trb.Entity:IsValid()) or (not trb.Entity:IsNPC()) and SERVER then
                     tr.Entity:TakeDamageInfo(dmginfo)
 					tr.Entity:SetVelocity(ply:EyeAngles():Forward()*(250 + ply:GetVelocity():Length())) 
                 end

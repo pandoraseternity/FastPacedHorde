@@ -3,7 +3,7 @@ PERK.Description = "Minions have {1} more health on spawn.\n{2} less damage take
 PERK.Icon = "materials/perks/symbiosis.png"
 PERK.Params = {
     [1] = {value = 0.20, percent = true},
-    [2] = {value = 0.075, percent = true},
+    [2] = {value = 0.02, percent = true},
 }
 
 PERK.Hooks = {}
@@ -48,5 +48,5 @@ end
 
 PERK.Hooks.Horde_OnPlayerDamageTaken = function (ply, dmginfo, bonus)
     if not ply:Horde_GetPerk("engineer_symbiosis")  then return end
-    bonus.resistance = bonus.resistance + 0.075 * ply:Horde_GetMinionCount()
+    bonus.resistance = bonus.resistance + 0.02 * ply:Horde_GetMinionCount()
 end
