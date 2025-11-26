@@ -1,5 +1,5 @@
 GADGET.PrintName = "Hyperdrive"
-GADGET.Description = [[{1} increased movement speed and grants 1 Adrenaline stack.
+GADGET.Description = [[{1} increased movement speed and grants 3 Adrenaline stacks.
 Lasts for {2} seconds.]]
 GADGET.Icon = "items/gadgets/hyperdrive.png"
 GADGET.Duration = 10
@@ -7,7 +7,7 @@ GADGET.Cooldown = 18
 GADGET.Active = true
 GADGET.Params = {
     [1] = {value = 1, percent = true},
-    [2] = {value = 10}
+    [2] = {value = 20}
 }
 GADGET.Hooks = {}
 
@@ -16,7 +16,9 @@ GADGET.Hooks.Horde_UseActiveGadget = function (ply)
     if ply:Horde_GetGadget() ~= "gadget_hyperdrive" then return end
     ply.Horde_Has_Hyperdive = true
     ply:Horde_AddAdrenalineStack()
-    timer.Simple(10, function ()
+	ply:Horde_AddAdrenalineStack()
+	ply:Horde_AddAdrenalineStack()
+    timer.Simple(20, function ()
         if IsValid(ply) then
             ply.Horde_Has_Hyperdive = nil
         end

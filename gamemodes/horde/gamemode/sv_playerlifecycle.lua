@@ -878,7 +878,7 @@ hook.Add("DoPlayerDeath", "Horde_DoPlayerDeath", function(victim)
 	
 if (HORDE.start_game) and (HORDE.current_break_time <= 0) then
 	if victim:GetNW2Bool( "GameLocked" ) == true then
-		timer.Simple(HORDE.respawncountdown, function() if victim:IsValid() then
+		timer.Simple(HORDE.respawncountdown, function() if victim:IsValid() && HORDE.current_break_time <= 0 then
 			victim:Spawn()
 			HORDE:SendNotification("Look alive, your enemies are closing in", 1, victim)
 			HORDE:CheckAlivePlayers()
@@ -887,7 +887,7 @@ if (HORDE.start_game) and (HORDE.current_break_time <= 0) then
 		end end)
 	end
 	victim:SetNWFloat( "respawncountdown", HORDE.respawncountdown )
-	timer.Create( "Horde_RespawnTicking", 1, HORDE.respawncountdown, function() if victim:IsValid() then
+	timer.Create( "Horde_RespawnTicking", 1, HORDE.respawncountdown, function() if victim:IsValid() && HORDE.current_break_time <= 0 then
 		victim:SetNWFloat( "respawncountdown", victim:GetNWFloat("respawncountdown") - 1 )
 	end end)
     HORDE:SendNotification("You are dead. You will respawn in " .. HORDE.respawncountdown .. " seconds.", 1, victim)
